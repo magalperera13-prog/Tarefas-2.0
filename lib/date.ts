@@ -1,0 +1,99 @@
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+
+export const APP_TIME_ZONE = "America/Sao_Paulo";
+
+const WEEKDAYS_PT = [
+  "domingo",
+  "segunda-feira",
+  "terça-feira",
+  "quarta-feira",
+  "quinta-feira",
+  "sexta-feira",
+  "sábado",
+];
+
+const WEEKDAYS_PT_SHORT = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+const MONTHS_PT = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
+/** "2026-08-20" — data corrente no fuso America/Sao_Paulo. */
+export function todayISODate(): string {
+  return formatInTimeZone(new Date(), APP_TIME_ZONE, "yyyy-MM-dd");
+}
+
+/** "14:32" — horário no fuso America/Sao_Paulo a partir de um timestamp ISO/UTC. */
+export function formatTime(isoTimestamp: string): string {
+  return formatInTimeZone(new Date(isoTimestamp), APP_TIME_ZONE, "HH:mm");
+}
+
+/** "20/08/2026" a partir de "2026-08-20" ou de um timestamp ISO. */
+export function formatDateBR(dateOrTimestamp: string): string {
+  const d = dateOrTimestamp.length === 10 ? `${dateOrTimestamp}T12:00:00` : dateOrTimestamp;
+  return formatInTimeZone(new Date(d), APP_TIME_ZONE, "dd/MM/yyyy");
+}
+
+/** Nome do dia da semana em português a partir de "yyyy-MM-dd". */
+export function weekdayLabel(dateISO: string, short = false): string {
+  const zoned = toZonedTime(`${dateISO}T12:00:00`, APP_TIME_ZONE);
+  const list = short ? WEEKDAYS_PT_SHORT : WEEKDAYS_PT;
+  return list[zoned.getDay()];
+}
+
+/** "20 de agosto" a partir de "yyyy-MM-dd". */
+export function dayMonthLabel(dateISO: string): string {
+  const zoned = toZonedTime(`${dateISO}T12:00:00`, APP_TIME_ZONE);
+  return `${zoned.getDate()} de ${MONTHS_PT[zoned.getMonth()]}`;
+}
+
+/** "Agosto de 2026" a partir de year/month (month = 1-12). */
+export function monthYearLabel(year: number, month: number): string {
+  const name = MONTHS_PT[month - 1];
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} de ${year}`;
+}
+
+/** "Agosto 2026" (mais compacto, usado na navegação). */
+export function monthYearShort(year: number, month: number): string {
+  const name = MONTHS_PT[month - 1];
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${year}`;
+}
+
+/** { year, month } (1-12) de hoje no fuso America/Sao_Paulo. */
+export function currentYearMonth(): { year: number; month: number } {
+  const todayISO = todayISODate();
+  const [year, month] = todayISO.split("-").map(Number);
+  return { year, month };
+}
+
+/** Primeiro e último dia (yyyy-MM-dd) de um mês, inclusive. */
+export function monthRange(year: number, month: number): { start: string; end: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const start = `${year}-${pad(month)}-01`;
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const end = `${year}-${pad(month)}-${pad(lastDay)}`;
+  return { start, end };
+}
+
+export function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
+  const total = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+}
+
+export function isSameOrFutureMonth(year: number, month: number): boolean {
+  const now = currentYearMonth();
+  if (year > now.year) return true;
+  if (year === now.year && month >= now.month) return true;
+  return false;
+}
