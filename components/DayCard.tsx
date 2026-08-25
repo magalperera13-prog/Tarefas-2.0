@@ -6,11 +6,11 @@ interface DayCardProps {
   dateISO: string;
   tasks: Task[];
   onToggle: (task: Task) => void;
-  onRename: (task: Task, newTitle: string) => void;
+  onSaveEdit: (task: Task, changes: { title: string; description: string | null }) => void;
   onDeleteRequest: (task: Task) => void;
 }
 
-export function DayCard({ dateISO, tasks, onToggle, onRename, onDeleteRequest }: DayCardProps) {
+export function DayCard({ dateISO, tasks, onToggle, onSaveEdit, onDeleteRequest }: DayCardProps) {
   const completed = tasks.filter((t) => t.status === "completed").length;
   const pct = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
 
@@ -41,7 +41,7 @@ export function DayCard({ dateISO, tasks, onToggle, onRename, onDeleteRequest }:
               key={task.id}
               task={task}
               onToggle={onToggle}
-              onRename={onRename}
+              onSaveEdit={onSaveEdit}
               onDeleteRequest={onDeleteRequest}
               showPendingBadge
             />

@@ -6,7 +6,10 @@ Painel pessoal de tarefas com histórico mensal automático, com **acesso restri
 
 - **Tarefas do dia**: adicione, conclua, edite e exclua tarefas do dia atual. Cada tarefa registra automaticamente data e horário de criação e de conclusão.
 - **Virada de dia automática**: não existe nenhuma tarefa agendada (cron) para "mover" dados. Cada tarefa guarda o dia (`task_date`) ao qual pertence, calculado no fuso **America/Sao_Paulo**. A tela inicial mostra apenas as tarefas de `task_date = hoje`; assim que o dia vira, essas mesmas tarefas passam a aparecer automaticamente no histórico — concluídas ou não. Nada é apagado.
-- **Histórico mensal**: navegação entre meses, agrupado por dia, com pesquisa por texto e filtro por status (todas / concluídas / pendentes).
+- **Pendências atrasadas**: tarefas não concluídas de dias anteriores continuam aparecendo na tela Hoje, numa área separada "Pendentes", até serem concluídas — mesmo assim, elas continuam registradas no histórico do dia original.
+- **Descrição opcional por tarefa**: clique numa tarefa (ou no ícone de lápis) para anotar, por exemplo, por que ela ainda não foi feita.
+- **Histórico mensal**: navegação entre meses, agrupado por dia, com pesquisa por texto (título e descrição) e filtro por status (todas / concluídas / pendentes).
+- **Gastos**: uma aba separada para registrar despesas do dia, com total de hoje, total do mês e média de gasto por dia, também navegável por mês.
 - **Acesso restrito a um único proprietário** (veja a seção de segurança abaixo) — não há cadastro público, nem rota `/register`, nem convite de usuários.
 - **Atalho `Ctrl+K`** foca a pesquisa na tela de histórico.
 
@@ -18,6 +21,7 @@ app/
   login/page.tsx           → tela de login (e-mail + senha, sem cadastro)
   reset-password/page.tsx  → definir nova senha a partir do link de recuperação
   history/page.tsx         → tela de histórico (protegida)
+  expenses/page.tsx        → tela de Gastos (protegida)
   layout.tsx               → layout raiz, fontes, ToastProvider
 components/
   LoginForm.tsx             → formulário de login e "esqueci minha senha"
@@ -43,6 +47,10 @@ Este não é apenas um botão de cadastro escondido. Há três camadas independe
 Além disso, o **Row Level Security** do Supabase (em `supabase/schema.sql`) garante que, mesmo que a checagem de e-mail falhasse, ninguém além do dono da tarefa conseguiria ler, criar, editar ou excluir tarefas — essa regra vive no banco, não na interface.
 
 A senha nunca é comparada no código (nada como `if (senha === "...")`); toda a validação de senha é feita pelo Supabase Auth.
+
+## Atualizando um projeto Supabase que você já criou
+
+Se você já rodou uma versão anterior de `supabase/schema.sql`, é só rodar o arquivo atual de novo no SQL Editor — ele é seguro de repetir (idempotente) e vai só adicionar o que falta: a coluna `description` em `tasks` e a tabela `expenses` com suas políticas de segurança.
 
 ## 1. Criar o projeto no Supabase e a conta do proprietário
 

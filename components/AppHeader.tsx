@@ -18,6 +18,7 @@ export function AppHeader({ userEmail }: { userEmail?: string | null }) {
   const tabs = [
     { href: "/", label: "Hoje" },
     { href: "/history", label: "Histórico" },
+    { href: "/expenses", label: "Gastos" },
   ];
 
   return (

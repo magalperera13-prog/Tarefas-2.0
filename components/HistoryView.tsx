@@ -74,7 +74,7 @@ export function HistoryView() {
     return tasks.filter((t) => {
       if (filter === "completed" && t.status !== "completed") return false;
       if (filter === "pending" && t.status !== "pending") return false;
-      if (q && !t.title.toLowerCase().includes(q)) return false;
+      if (q && !t.title.toLowerCase().includes(q) && !t.description?.toLowerCase().includes(q)) return false;
       return true;
     });
   }, [tasks, filter, query]);
@@ -105,12 +105,12 @@ export function HistoryView() {
     showToast(completing ? "✓ Tarefa concluída" : "Tarefa reaberta");
   }
 
-  async function handleRename(task: Task, newTitle: string) {
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, title: newTitle } : t)));
-    const { error } = await supabase.from("tasks").update({ title: newTitle }).eq("id", task.id);
+  async function handleSaveEdit(task: Task, changes: { title: string; description: string | null }) {
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...changes } : t)));
+    const { error } = await supabase.from("tasks").update(changes).eq("id", task.id);
     if (error) {
       setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-      showToast("Não foi possível renomear a tarefa", "danger");
+      showToast("Não foi possível salvar a tarefa", "danger");
     }
   }
 
@@ -155,7 +155,7 @@ export function HistoryView() {
               dateISO={dateISO}
               tasks={dayTasks}
               onToggle={handleToggle}
-              onRename={handleRename}
+              onSaveEdit={handleSaveEdit}
               onDeleteRequest={setPendingDelete}
             />
           ))}

@@ -91,6 +91,18 @@ export function addMonths(year: number, month: number, delta: number): { year: n
   return { year: Math.floor(total / 12), month: (total % 12) + 1 };
 }
 
+/** Quantos dias do mês já se passaram (para calcular médias). Mês passado = todos os dias; mês atual = até hoje. */
+export function daysElapsedInMonth(year: number, month: number): number {
+  const now = currentYearMonth();
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (year === now.year && month === now.month) {
+    const todayDay = Number(todayISODate().slice(8, 10));
+    return todayDay;
+  }
+  if (year > now.year || (year === now.year && month > now.month)) return 0;
+  return lastDay;
+}
+
 export function isSameOrFutureMonth(year: number, month: number): boolean {
   const now = currentYearMonth();
   if (year > now.year) return true;

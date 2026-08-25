@@ -2,49 +2,124 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Task } from "@/lib/types";
-import { formatTime } from "@/lib/date";
+import { formatTime, formatDateBR } from "@/lib/date";
 
 interface TaskItemProps {
   task: Task;
   onToggle: (task: Task) => void;
-  onRename: (task: Task, newTitle: string) => void;
+  onSaveEdit: (task: Task, changes: { title: string; description: string | null }) => void;
   onDeleteRequest: (task: Task) => void;
   /** Quando true (histórico), mostra também o status "não concluída" em vez de ocultar. */
   showPendingBadge?: boolean;
+  /** Quando definido (tela Hoje), mostra que essa pendência é de um dia anterior. */
+  overdueSince?: string;
 }
 
-export function TaskItem({ task, onToggle, onRename, onDeleteRequest, showPendingBadge }: TaskItemProps) {
+export function TaskItem({
+  task,
+  onToggle,
+  onSaveEdit,
+  onDeleteRequest,
+  showPendingBadge,
+  overdueSince,
+}: TaskItemProps) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(task.title);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [draftTitle, setDraftTitle] = useState(task.title);
+  const [draftDescription, setDraftDescription] = useState(task.description ?? "");
+  const titleRef = useRef<HTMLInputElement>(null);
   const completed = task.status === "completed";
 
   useEffect(() => {
     if (editing) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      titleRef.current?.focus();
+      titleRef.current?.select();
     }
   }, [editing]);
 
-  function commitRename() {
-    const title = draft.trim();
+  function startEditing() {
+    setDraftTitle(task.title);
+    setDraftDescription(task.description ?? "");
+    setEditing(true);
+  }
+
+  function commitEdit() {
+    const title = draftTitle.trim();
+    const description = draftDescription.trim();
     setEditing(false);
-    if (title && title !== task.title) {
-      onRename(task, title);
-    } else {
-      setDraft(task.title);
+    if (!title) {
+      setDraftTitle(task.title);
+      return;
     }
+    if (title !== task.title || description !== (task.description ?? "")) {
+      onSaveEdit(task, { title, description: description || null });
+    }
+  }
+
+  function cancelEdit() {
+    setDraftTitle(task.title);
+    setDraftDescription(task.description ?? "");
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div
+        className="rounded-xl border px-3.5 py-3"
+        style={{ borderColor: "var(--color-accent)", background: "var(--color-bg-elevated)" }}
+      >
+        <input
+          ref={titleRef}
+          value={draftTitle}
+          onChange={(e) => setDraftTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) commitEdit();
+            if (e.key === "Escape") cancelEdit();
+          }}
+          className="w-full rounded-md border-0 bg-transparent px-0 py-0.5 text-[15px] outline-none"
+          style={{ color: "var(--color-text)" }}
+          placeholder="Nome da tarefa"
+        />
+        <textarea
+          value={draftDescription}
+          onChange={(e) => setDraftDescription(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") cancelEdit();
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitEdit();
+          }}
+          rows={2}
+          placeholder="Descrição opcional — por exemplo, por que ainda não foi feita"
+          className="mt-1.5 w-full resize-none rounded-md border-0 bg-transparent px-0 py-0.5 text-[12.5px] outline-none placeholder:text-[var(--color-text-faint)]"
+          style={{ color: "var(--color-text-muted)" }}
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            onClick={cancelEdit}
+            className="rounded-lg px-2.5 py-1 text-xs font-medium transition hover:opacity-80"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={commitEdit}
+            className="rounded-lg px-2.5 py-1 text-xs font-semibold transition hover:opacity-90"
+            style={{ background: "var(--color-accent)", color: "#062017" }}
+          >
+            Salvar
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div
-      className="group flex items-center gap-3 rounded-xl border px-3.5 py-3 transition"
+      className="group flex items-start gap-3 rounded-xl border px-3.5 py-3 transition"
       style={{ borderColor: "var(--color-border-soft)", background: "var(--color-bg-elevated)" }}
     >
       <button
         onClick={() => onToggle(task)}
         aria-label={completed ? "Marcar como não concluída" : "Marcar como concluída"}
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition"
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition"
         style={{
           borderColor: completed ? "var(--color-accent)" : "var(--color-border)",
           background: completed ? "var(--color-accent)" : "transparent",
@@ -58,38 +133,29 @@ export function TaskItem({ task, onToggle, onRename, onDeleteRequest, showPendin
       </button>
 
       <div className="min-w-0 flex-1">
-        {editing ? (
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitRename();
-              if (e.key === "Escape") {
-                setDraft(task.title);
-                setEditing(false);
-              }
-            }}
-            className="w-full rounded-md border bg-transparent px-1.5 py-0.5 text-[15px] outline-none"
-            style={{ borderColor: "var(--color-accent)" }}
-          />
-        ) : (
-          <button
-            onClick={() => setEditing(true)}
-            className="block max-w-full truncate text-left text-[15px] leading-tight"
-            style={{
-              color: completed ? "var(--color-text-faint)" : "var(--color-text)",
-              textDecoration: completed ? "line-through" : "none",
-            }}
-            title="Clique para editar"
-          >
-            {task.title}
-          </button>
+        <button
+          onClick={startEditing}
+          className="block max-w-full truncate text-left text-[15px] leading-tight"
+          style={{
+            color: completed ? "var(--color-text-faint)" : "var(--color-text)",
+            textDecoration: completed ? "line-through" : "none",
+          }}
+          title="Clique para editar"
+        >
+          {task.title}
+        </button>
+
+        {task.description && (
+          <p className="mt-1 line-clamp-2 text-[12.5px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
+            {task.description}
+          </p>
         )}
-        <p className="mt-0.5 font-[family-name:var(--font-mono)] text-[11px] tabular" style={{ color: "var(--color-text-faint)" }}>
+
+        <p className="mt-1 font-[family-name:var(--font-mono)] text-[11px] tabular" style={{ color: "var(--color-text-faint)" }}>
           {completed ? (
             <>concluída às {formatTime(task.completed_at ?? task.updated_at)}</>
+          ) : overdueSince ? (
+            <span style={{ color: "var(--color-pending)" }}>atrasada desde {formatDateBR(overdueSince)}</span>
           ) : showPendingBadge ? (
             <span style={{ color: "var(--color-pending)" }}>não concluída</span>
           ) : (
@@ -100,7 +166,7 @@ export function TaskItem({ task, onToggle, onRename, onDeleteRequest, showPendin
 
       <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
         <button
-          onClick={() => setEditing(true)}
+          onClick={startEditing}
           aria-label="Editar tarefa"
           className="rounded-lg p-1.5 transition hover:bg-white/5"
           style={{ color: "var(--color-text-muted)" }}
