@@ -6,6 +6,7 @@ import { useToast } from "@/components/ToastProvider";
 import { MonthNav } from "@/components/MonthNav";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { DayCard } from "@/components/DayCard";
+import { MonthlyCompletedSummary } from "@/components/MonthlyCompletedSummary";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { HistoryFilter, Task } from "@/lib/types";
@@ -23,6 +24,7 @@ export function HistoryView() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<HistoryFilter>("all");
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<{ monthKey: string; count: number }[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,6 +37,27 @@ export function HistoryView() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    // Resumo de produtividade por mês — busca uma vez, independente do mês navegado.
+    supabase
+      .from("tasks")
+      .select("task_date")
+      .eq("status", "completed")
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const counts = new Map<string, number>();
+        for (const row of data as { task_date: string }[]) {
+          const key = row.task_date.slice(0, 7);
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        const summary = Array.from(counts.entries())
+          .map(([monthKey, count]) => ({ monthKey, count }))
+          .sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1))
+          .slice(0, 12);
+        setMonthlySummary(summary);
+      });
+  }, [supabase]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +112,17 @@ export function HistoryView() {
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [filtered]);
 
+  function adjustMonthlySummary(monthKey: string, delta: number) {
+    setMonthlySummary((prev) => {
+      const existing = prev.find((e) => e.monthKey === monthKey);
+      if (existing) {
+        return prev.map((e) => (e.monthKey === monthKey ? { ...e, count: e.count + delta } : e));
+      }
+      if (delta <= 0) return prev;
+      return [...prev, { monthKey, count: delta }].sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1)).slice(0, 12);
+    });
+  }
+
   async function handleToggle(task: Task) {
     const completing = task.status !== "completed";
     const patch = completing
@@ -96,9 +130,11 @@ export function HistoryView() {
       : { status: "pending" as const, completed_at: null };
 
     setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
+    adjustMonthlySummary(task.task_date.slice(0, 7), completing ? 1 : -1);
     const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
     if (error) {
       setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+      adjustMonthlySummary(task.task_date.slice(0, 7), completing ? -1 : 1);
       showToast("Não foi possível atualizar a tarefa", "danger");
       return;
     }
@@ -119,9 +155,11 @@ export function HistoryView() {
     const task = pendingDelete;
     setPendingDelete(null);
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
+    if (task.status === "completed") adjustMonthlySummary(task.task_date.slice(0, 7), -1);
     const { error } = await supabase.from("tasks").delete().eq("id", task.id);
     if (error) {
       setTasks((prev) => [task, ...prev]);
+      if (task.status === "completed") adjustMonthlySummary(task.task_date.slice(0, 7), 1);
       showToast("Não foi possível excluir a tarefa", "danger");
       return;
     }
@@ -130,6 +168,7 @@ export function HistoryView() {
 
   return (
     <div className="space-y-6">
+      <MonthlyCompletedSummary data={monthlySummary} />
       <MonthNav year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
       <SearchFilterBar ref={searchRef} query={query} onQueryChange={setQuery} filter={filter} onFilterChange={setFilter} />
 
