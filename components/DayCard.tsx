@@ -11,16 +11,9 @@ interface DayCardProps {
 }
 
 export function DayCard({ dateISO, tasks, onToggle, onSaveEdit, onDeleteRequest }: DayCardProps) {
-  const completed = tasks.filter((t) => t.status === "completed").length;
-  const pct = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
-
   return (
     <div className="flex gap-3">
-      <div
-        className="day-progress-rail w-1 shrink-0 rounded-full"
-        style={{ "--pct": `${pct}%` } as React.CSSProperties}
-        aria-hidden
-      />
+      <div className="w-1 shrink-0 rounded-full" style={{ background: "var(--color-accent)" }} aria-hidden />
       <div className="min-w-0 flex-1 pb-1">
         <div className="mb-2.5 flex items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-2">
@@ -32,19 +25,12 @@ export function DayCard({ dateISO, tasks, onToggle, onSaveEdit, onDeleteRequest 
             </span>
           </div>
           <span className="font-[family-name:var(--font-mono)] text-xs tabular" style={{ color: "var(--color-text-muted)" }}>
-            {completed}/{tasks.length}
+            {tasks.length} {tasks.length === 1 ? "concluída" : "concluídas"}
           </span>
         </div>
         <div className="space-y-2">
           {tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={onToggle}
-              onSaveEdit={onSaveEdit}
-              onDeleteRequest={onDeleteRequest}
-              showPendingBadge
-            />
+            <TaskItem key={task.id} task={task} onToggle={onToggle} onSaveEdit={onSaveEdit} onDeleteRequest={onDeleteRequest} />
           ))}
         </div>
       </div>

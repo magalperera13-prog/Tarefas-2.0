@@ -19,8 +19,6 @@ export interface DashboardStats {
   completedThisMonth: number;
 }
 
-export type HistoryFilter = "all" | "completed" | "pending";
-
 export interface Expense {
   id: string;
   user_id: string;

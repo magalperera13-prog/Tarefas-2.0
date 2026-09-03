@@ -9,8 +9,8 @@ import { DayCard } from "@/components/DayCard";
 import { MonthlyCompletedSummary } from "@/components/MonthlyCompletedSummary";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import type { HistoryFilter, Task } from "@/lib/types";
-import { currentYearMonth, monthRange, monthYearLabel, todayISODate } from "@/lib/date";
+import type { Task } from "@/lib/types";
+import { currentYearMonth, monthRange, monthYearLabel } from "@/lib/date";
 
 export function HistoryView() {
   const supabase = createClient();
@@ -22,7 +22,6 @@ export function HistoryView() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<HistoryFilter>("all");
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
   const [monthlySummary, setMonthlySummary] = useState<{ monthKey: string; count: number }[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -65,14 +64,15 @@ export function HistoryView() {
     setLoading(true);
 
     const { start, end } = monthRange(year, month);
-    const todayISO = todayISODate();
 
+    // O Histórico mostra só o que foi de fato concluído naquele mês — tarefas
+    // não concluídas não aparecem aqui (ficam só na tela Hoje, se ainda em aberto).
     supabase
       .from("tasks")
       .select("*")
+      .eq("status", "completed")
       .gte("task_date", start)
       .lte("task_date", end)
-      .lt("task_date", todayISO) // tarefas de hoje ficam só em "Tarefas do dia", não no histórico ainda
       .order("task_date", { ascending: false })
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
@@ -94,13 +94,9 @@ export function HistoryView() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return tasks.filter((t) => {
-      if (filter === "completed" && t.status !== "completed") return false;
-      if (filter === "pending" && t.status !== "pending") return false;
-      if (q && !t.title.toLowerCase().includes(q) && !t.description?.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [tasks, filter, query]);
+    if (!q) return tasks;
+    return tasks.filter((t) => t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q));
+  }, [tasks, query]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -124,21 +120,20 @@ export function HistoryView() {
   }
 
   async function handleToggle(task: Task) {
-    const completing = task.status !== "completed";
-    const patch = completing
-      ? { status: "completed" as const, completed_at: new Date().toISOString() }
-      : { status: "pending" as const, completed_at: null };
+    // Aqui só existem tarefas concluídas, então "desmarcar" sempre reabre —
+    // e some da lista, já que o Histórico não mostra pendentes.
+    const patch = { status: "pending" as const, completed_at: null };
 
-    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
-    adjustMonthlySummary(task.task_date.slice(0, 7), completing ? 1 : -1);
+    setTasks((prev) => prev.filter((t) => t.id !== task.id));
+    adjustMonthlySummary(task.task_date.slice(0, 7), -1);
     const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
     if (error) {
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-      adjustMonthlySummary(task.task_date.slice(0, 7), completing ? -1 : 1);
+      setTasks((prev) => [task, ...prev]);
+      adjustMonthlySummary(task.task_date.slice(0, 7), 1);
       showToast("Não foi possível atualizar a tarefa", "danger");
       return;
     }
-    showToast(completing ? "✓ Tarefa concluída" : "Tarefa reaberta");
+    showToast("Tarefa reaberta");
   }
 
   async function handleSaveEdit(task: Task, changes: { title: string; description: string | null }) {
@@ -155,11 +150,11 @@ export function HistoryView() {
     const task = pendingDelete;
     setPendingDelete(null);
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    if (task.status === "completed") adjustMonthlySummary(task.task_date.slice(0, 7), -1);
+    adjustMonthlySummary(task.task_date.slice(0, 7), -1);
     const { error } = await supabase.from("tasks").delete().eq("id", task.id);
     if (error) {
       setTasks((prev) => [task, ...prev]);
-      if (task.status === "completed") adjustMonthlySummary(task.task_date.slice(0, 7), 1);
+      adjustMonthlySummary(task.task_date.slice(0, 7), 1);
       showToast("Não foi possível excluir a tarefa", "danger");
       return;
     }
@@ -170,7 +165,7 @@ export function HistoryView() {
     <div className="space-y-6">
       <MonthlyCompletedSummary data={monthlySummary} />
       <MonthNav year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
-      <SearchFilterBar ref={searchRef} query={query} onQueryChange={setQuery} filter={filter} onFilterChange={setFilter} />
+      <SearchFilterBar ref={searchRef} query={query} onQueryChange={setQuery} />
 
       {loading ? (
         <div className="space-y-3">
@@ -181,9 +176,9 @@ export function HistoryView() {
       ) : grouped.length === 0 ? (
         <EmptyState
           message={
-            query || filter !== "all"
+            query
               ? "Nenhuma tarefa encontrada com esses critérios."
-              : `Nenhuma tarefa registrada em ${monthYearLabel(year, month)}.`
+              : `Nenhuma tarefa concluída em ${monthYearLabel(year, month)}.`
           }
         />
       ) : (

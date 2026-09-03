@@ -51,15 +51,6 @@ body {
   }
 }
 
-/* Faixa vertical de progresso usada nos cartões de dia do histórico. */
-.day-progress-rail {
-  background: linear-gradient(
-    to top,
-    var(--color-accent) var(--pct, 0%),
-    var(--color-border-soft) var(--pct, 0%)
-  );
-}
-
 .tabular {
   font-variant-numeric: tabular-nums;
 }
