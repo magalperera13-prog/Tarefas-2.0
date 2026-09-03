@@ -103,6 +103,26 @@ export function daysElapsedInMonth(year: number, month: number): number {
   return lastDay;
 }
 
+/** "2026-09" — mês corrente no fuso America/Sao_Paulo (para controle mensal de assinaturas). */
+export function currentMonthKey(): string {
+  return todayISODate().slice(0, 7);
+}
+
+/** Soma 1 mês de calendário a "yyyy-MM-dd", ajustando o dia se o mês de destino for mais curto. */
+export function addOneMonthToDateString(dateISO: string): string {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  let targetYear = y;
+  let targetMonth = m + 1;
+  if (targetMonth > 12) {
+    targetMonth = 1;
+    targetYear += 1;
+  }
+  const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+  const day = Math.min(d, lastDayOfTargetMonth);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${targetYear}-${pad(targetMonth)}-${pad(day)}`;
+}
+
 export function isSameOrFutureMonth(year: number, month: number): boolean {
   const now = currentYearMonth();
   if (year > now.year) return true;

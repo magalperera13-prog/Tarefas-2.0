@@ -9,31 +9,38 @@ import { ExpenseDayCard } from "@/components/ExpenseDayCard";
 import { MonthNav } from "@/components/MonthNav";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import type { Expense, ExpenseStats } from "@/lib/types";
+import type { Expense } from "@/lib/types";
 import { currentYearMonth, daysElapsedInMonth, monthRange, monthYearLabel, monthYearShort, todayISODate } from "@/lib/date";
 
 interface ExpensesViewProps {
   userId: string;
   initialExpenses: Expense[];
-  initialStats: ExpenseStats;
+  initialTotalToday: number;
 }
 
-export function ExpensesView({ userId, initialExpenses, initialStats }: ExpensesViewProps) {
+export function ExpensesView({ userId, initialExpenses, initialTotalToday }: ExpensesViewProps) {
   const supabase = createClient();
   const { showToast } = useToast();
 
   const current = useMemo(() => currentYearMonth(), []);
   const todayISO = useMemo(() => todayISODate(), []);
-  const currentMonthPrefix = todayISO.slice(0, 7);
 
   const [year, setYear] = useState(current.year);
   const [month, setMonth] = useState(current.month);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [stats, setStats] = useState<ExpenseStats>(initialStats);
+  const [totalToday, setTotalToday] = useState(initialTotalToday);
   const [loading, setLoading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Expense | null>(null);
 
   const isViewingCurrentMonth = year === current.year && month === current.month;
+
+  // Total e média sempre refletem o MÊS QUE ESTÁ SENDO VISUALIZADO, não o mês
+  // atual do calendário — só "Gasto hoje" fica fixo no dia real de hoje.
+  const monthTotal = useMemo(() => expenses.reduce((sum, e) => sum + e.amount, 0), [expenses]);
+  const monthAverage = useMemo(() => {
+    const days = daysElapsedInMonth(year, month) || 1;
+    return monthTotal / days;
+  }, [monthTotal, year, month]);
 
   useEffect(() => {
     if (isViewingCurrentMonth) return; // já carregado pelo servidor
@@ -66,14 +73,9 @@ export function ExpensesView({ userId, initialExpenses, initialStats }: Expenses
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
 
-  function adjustStats(deltaAmount: number, expenseDate: string) {
-    if (!expenseDate.startsWith(currentMonthPrefix)) return;
-    setStats((prev) => {
-      const totalThisMonth = prev.totalThisMonth + deltaAmount;
-      const totalToday = expenseDate === todayISO ? prev.totalToday + deltaAmount : prev.totalToday;
-      const days = daysElapsedInMonth(current.year, current.month) || 1;
-      return { totalThisMonth, totalToday, averagePerDay: totalThisMonth / days };
-    });
+  function adjustTotalToday(deltaAmount: number, expenseDate: string) {
+    if (expenseDate !== todayISO) return;
+    setTotalToday((prev) => prev + deltaAmount);
   }
 
   async function handleAdd(description: string, amount: number) {
@@ -88,7 +90,7 @@ export function ExpensesView({ userId, initialExpenses, initialStats }: Expenses
       return;
     }
     const expense = data as Expense;
-    adjustStats(expense.amount, expense.expense_date);
+    adjustTotalToday(expense.amount, expense.expense_date);
     if (isViewingCurrentMonth) {
       setExpenses((prev) => [expense, ...prev]);
     }
@@ -97,12 +99,12 @@ export function ExpensesView({ userId, initialExpenses, initialStats }: Expenses
 
   async function handleSaveEdit(expense: Expense, changes: { description: string; amount: number }) {
     setExpenses((prev) => prev.map((e) => (e.id === expense.id ? { ...e, ...changes } : e)));
-    adjustStats(changes.amount - expense.amount, expense.expense_date);
+    adjustTotalToday(changes.amount - expense.amount, expense.expense_date);
 
     const { error } = await supabase.from("expenses").update(changes).eq("id", expense.id);
     if (error) {
       setExpenses((prev) => prev.map((e) => (e.id === expense.id ? expense : e)));
-      adjustStats(expense.amount - changes.amount, expense.expense_date);
+      adjustTotalToday(expense.amount - changes.amount, expense.expense_date);
       showToast("Não foi possível salvar o gasto", "danger");
     }
   }
@@ -112,12 +114,12 @@ export function ExpensesView({ userId, initialExpenses, initialStats }: Expenses
     const expense = pendingDelete;
     setPendingDelete(null);
     setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
-    adjustStats(-expense.amount, expense.expense_date);
+    adjustTotalToday(-expense.amount, expense.expense_date);
 
     const { error } = await supabase.from("expenses").delete().eq("id", expense.id);
     if (error) {
       setExpenses((prev) => [expense, ...prev]);
-      adjustStats(expense.amount, expense.expense_date);
+      adjustTotalToday(expense.amount, expense.expense_date);
       showToast("Não foi possível excluir o gasto", "danger");
       return;
     }
@@ -136,7 +138,10 @@ export function ExpensesView({ userId, initialExpenses, initialStats }: Expenses
 
   return (
     <div className="space-y-6">
-      <ExpenseStatsRail stats={stats} monthLabel={monthYearShort(current.year, current.month)} />
+      <ExpenseStatsRail
+        stats={{ totalToday, totalThisMonth: monthTotal, averagePerDay: monthAverage }}
+        monthLabel={monthYearShort(year, month)}
+      />
       <ExpenseQuickAdd onAdd={handleAdd} />
       <MonthNav year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
 

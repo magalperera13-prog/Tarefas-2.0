@@ -10,6 +10,7 @@ Painel pessoal de tarefas com histórico mensal automático, com **acesso restri
 - **Descrição opcional por tarefa**: clique numa tarefa (ou no ícone de lápis) para anotar, por exemplo, por que ela ainda não foi feita.
 - **Histórico mensal**: navegação entre meses, agrupado por dia, com pesquisa por texto (título e descrição) e filtro por status (todas / concluídas / pendentes).
 - **Gastos**: uma aba separada para registrar despesas do dia, com total de hoje, total do mês e média de gasto por dia, também navegável por mês.
+- **Assinaturas**: controle de gastos recorrentes (Netflix, internet, hospedagem etc.) com valor mensal, vencimento e observação. Cada uma pode ser marcada como paga no mês atual — a marcação reseta sozinha quando o mês vira. Mostra total mensal, total já pago no mês e total anual estimado.
 - **Acesso restrito a um único proprietário** (veja a seção de segurança abaixo) — não há cadastro público, nem rota `/register`, nem convite de usuários.
 - **Atalho `Ctrl+K`** foca a pesquisa na tela de histórico.
 
@@ -22,6 +23,7 @@ app/
   reset-password/page.tsx  → definir nova senha a partir do link de recuperação
   history/page.tsx         → tela de histórico (protegida)
   expenses/page.tsx        → tela de Gastos (protegida)
+  subscriptions/page.tsx   → tela de Assinaturas (protegida)
   layout.tsx               → layout raiz, fontes, ToastProvider
 components/
   LoginForm.tsx             → formulário de login e "esqueci minha senha"
@@ -50,7 +52,7 @@ A senha nunca é comparada no código (nada como `if (senha === "...")`); toda a
 
 ## Atualizando um projeto Supabase que você já criou
 
-Se você já rodou uma versão anterior de `supabase/schema.sql`, é só rodar o arquivo atual de novo no SQL Editor — ele é seguro de repetir (idempotente) e vai só adicionar o que falta: a coluna `description` em `tasks` e a tabela `expenses` com suas políticas de segurança.
+Se você já rodou uma versão anterior de `supabase/schema.sql`, é só rodar o arquivo atual de novo no SQL Editor — ele é seguro de repetir (idempotente) e vai só adicionar o que falta: a coluna `description` em `tasks`, a tabela `expenses` e a tabela `subscriptions`, cada uma com suas políticas de segurança.
 
 ## 1. Criar o projeto no Supabase e a conta do proprietário
 

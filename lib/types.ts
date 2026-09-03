@@ -36,3 +36,27 @@ export interface ExpenseStats {
   totalThisMonth: number;
   averagePerDay: number;
 }
+
+export type SubscriptionStatus = "active" | "inactive";
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  name: string;
+  monthly_amount: number;
+  due_day_label: string | null;
+  status: SubscriptionStatus;
+  observation: string | null;
+  /** 'fixed_day': due_day_label é a referência. 'payment_date': o vencimento se baseia em last_paid_date. */
+  renewal_type: "fixed_day" | "payment_date";
+  /** Data (yyyy-MM-dd, America/Sao_Paulo) do último pagamento registrado. */
+  last_paid_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionStats {
+  totalMonthly: number;
+  totalPaidThisMonth: number;
+  totalYearlyEstimate: number;
+}
