@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Subscription } from "@/lib/types";
+import type { Subscription, SubscriptionPayment } from "@/lib/types";
 import { formatBRL } from "@/lib/format";
 import { addOneMonthToDateString, formatDateBR } from "@/lib/date";
 
@@ -11,21 +11,29 @@ interface SubscriptionEditChanges {
   due_day_label: string | null;
   observation: string | null;
   renewal_type: "fixed_day" | "payment_date";
-  last_paid_date: string | null;
 }
 
 interface SubscriptionItemProps {
   subscription: Subscription;
-  isPaidThisMonth: boolean;
+  isPaidInViewedMonth: boolean;
+  viewedMonthPayment: SubscriptionPayment | null;
+  mostRecentPaidDate: string | null;
   onToggleStatus: (subscription: Subscription) => void;
   onTogglePaid: (subscription: Subscription) => void;
-  onSaveEdit: (subscription: Subscription, changes: SubscriptionEditChanges) => void;
+  onSaveEdit: (
+    subscription: Subscription,
+    changes: SubscriptionEditChanges,
+    paidDateForViewedMonth: string | null,
+    paymentAmountForViewedMonth: number | null
+  ) => void;
   onDeleteRequest: (subscription: Subscription) => void;
 }
 
 export function SubscriptionItem({
   subscription,
-  isPaidThisMonth,
+  isPaidInViewedMonth,
+  viewedMonthPayment,
+  mostRecentPaidDate,
   onToggleStatus,
   onTogglePaid,
   onSaveEdit,
@@ -37,7 +45,10 @@ export function SubscriptionItem({
   const [draftDueDay, setDraftDueDay] = useState(subscription.due_day_label ?? "");
   const [draftObservation, setDraftObservation] = useState(subscription.observation ?? "");
   const [draftRenewalType, setDraftRenewalType] = useState(subscription.renewal_type);
-  const [draftLastPaidDate, setDraftLastPaidDate] = useState(subscription.last_paid_date ?? "");
+  const [draftPaidDate, setDraftPaidDate] = useState(viewedMonthPayment?.paid_date ?? "");
+  const [draftPaymentAmount, setDraftPaymentAmount] = useState(
+    String(viewedMonthPayment?.amount ?? subscription.monthly_amount).replace(".", ",")
+  );
   const nameRef = useRef<HTMLInputElement>(null);
   const inactive = subscription.status === "inactive";
   const isPaymentBased = subscription.renewal_type === "payment_date";
@@ -55,7 +66,8 @@ export function SubscriptionItem({
     setDraftDueDay(subscription.due_day_label ?? "");
     setDraftObservation(subscription.observation ?? "");
     setDraftRenewalType(subscription.renewal_type);
-    setDraftLastPaidDate(subscription.last_paid_date ?? "");
+    setDraftPaidDate(viewedMonthPayment?.paid_date ?? "");
+    setDraftPaymentAmount(String(viewedMonthPayment?.amount ?? subscription.monthly_amount).replace(".", ","));
     setEditing(true);
   }
 
@@ -64,20 +76,18 @@ export function SubscriptionItem({
     const amount = Number(draftAmount.replace(",", "."));
     const dueDay = draftDueDay.trim() || null;
     const observation = draftObservation.trim() || null;
-    const lastPaidDate = draftLastPaidDate || null;
+    const paymentAmount = Number(draftPaymentAmount.replace(",", "."));
     setEditing(false);
     if (!name || !(amount > 0)) {
       startEditing();
       return;
     }
-    onSaveEdit(subscription, {
-      name,
-      monthly_amount: amount,
-      due_day_label: dueDay,
-      observation,
-      renewal_type: draftRenewalType,
-      last_paid_date: lastPaidDate,
-    });
+    onSaveEdit(
+      subscription,
+      { name, monthly_amount: amount, due_day_label: dueDay, observation, renewal_type: draftRenewalType },
+      draftPaidDate || null,
+      draftPaidDate && paymentAmount > 0 ? paymentAmount : null
+    );
   }
 
   function cancelEdit() {
@@ -114,8 +124,11 @@ export function SubscriptionItem({
             />
           </div>
         </div>
+        <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--color-text-faint)" }}>
+          Esse é o valor padrão da assinatura (usado como projeção mensal e como sugestão ao marcar como paga).
+        </p>
 
-        <div className="mt-2.5 flex items-center gap-1.5">
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <span className="text-[11px]" style={{ color: "var(--color-text-faint)" }}>
             Vencimento:
           </span>
@@ -143,7 +156,7 @@ export function SubscriptionItem({
           </button>
         </div>
 
-        {draftRenewalType === "fixed_day" ? (
+        {draftRenewalType === "fixed_day" && (
           <input
             value={draftDueDay}
             onChange={(e) => setDraftDueDay(e.target.value)}
@@ -152,20 +165,51 @@ export function SubscriptionItem({
             className="mt-1.5 w-full rounded-md border-0 bg-transparent px-0 py-0.5 text-[12.5px] outline-none placeholder:text-[var(--color-text-faint)]"
             style={{ color: "var(--color-text-muted)" }}
           />
-        ) : (
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <span className="text-[11px]" style={{ color: "var(--color-text-faint)" }}>
-              Data do último pagamento:
-            </span>
-            <input
-              type="date"
-              value={draftLastPaidDate}
-              onChange={(e) => setDraftLastPaidDate(e.target.value)}
-              className="rounded-md border-0 bg-transparent text-[12.5px] outline-none"
-              style={{ color: "var(--color-text-muted)" }}
-            />
-          </div>
         )}
+
+        <div className="mt-2 rounded-lg border px-2.5 py-2" style={{ borderColor: "var(--color-border-soft)" }}>
+          <p className="mb-1.5 text-[10.5px] font-medium" style={{ color: "var(--color-text-faint)" }}>
+            Pagamento deste mês (útil pra corrigir data/valor de fatura variável ou paga em atraso)
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px]" style={{ color: "var(--color-text-faint)" }}>
+                Data:
+              </span>
+              <input
+                type="date"
+                value={draftPaidDate}
+                onChange={(e) => setDraftPaidDate(e.target.value)}
+                className="rounded-md border-0 bg-transparent text-[12.5px] outline-none"
+                style={{ color: "var(--color-text-muted)" }}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[11px]" style={{ color: "var(--color-text-faint)" }}>
+                Valor pago:
+              </span>
+              <span className="text-[12px]" style={{ color: "var(--color-text-faint)" }}>
+                R$
+              </span>
+              <input
+                value={draftPaymentAmount}
+                onChange={(e) => setDraftPaymentAmount(e.target.value)}
+                inputMode="decimal"
+                className="w-16 bg-transparent font-[family-name:var(--font-mono)] text-[12.5px] tabular outline-none"
+                style={{ color: "var(--color-text-muted)" }}
+              />
+            </div>
+            {draftPaidDate && (
+              <button
+                onClick={() => setDraftPaidDate("")}
+                className="text-[11px] underline"
+                style={{ color: "var(--color-text-faint)" }}
+              >
+                limpar
+              </button>
+            )}
+          </div>
+        </div>
 
         <textarea
           value={draftObservation}
@@ -197,8 +241,8 @@ export function SubscriptionItem({
   }
 
   const subtitle = isPaymentBased
-    ? subscription.last_paid_date
-      ? `Pago em ${formatDateBR(subscription.last_paid_date)} · próx. vencimento estimado: ${formatDateBR(addOneMonthToDateString(subscription.last_paid_date))}`
+    ? mostRecentPaidDate
+      ? `Pago em ${formatDateBR(mostRecentPaidDate)} · próx. vencimento estimado: ${formatDateBR(addOneMonthToDateString(mostRecentPaidDate))}`
       : "Renova pelo pagamento — ainda sem pagamento registrado"
     : subscription.due_day_label
       ? `Vencimento: ${subscription.due_day_label}`
@@ -245,7 +289,7 @@ export function SubscriptionItem({
         className="hidden shrink-0 font-[family-name:var(--font-mono)] text-[13px] tabular sm:block"
         style={{ color: "var(--color-text)" }}
       >
-        {formatBRL(subscription.monthly_amount)}
+        {formatBRL(viewedMonthPayment?.amount ?? subscription.monthly_amount)}
       </span>
 
       <button
@@ -253,12 +297,12 @@ export function SubscriptionItem({
         disabled={inactive}
         className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold transition disabled:opacity-40"
         style={{
-          background: isPaidThisMonth ? "var(--color-accent-soft)" : "var(--color-bg-inset)",
-          color: isPaidThisMonth ? "var(--color-accent)" : "var(--color-text-muted)",
-          border: `1px solid ${isPaidThisMonth ? "var(--color-accent)" : "var(--color-border)"}`,
+          background: isPaidInViewedMonth ? "var(--color-accent-soft)" : "var(--color-bg-inset)",
+          color: isPaidInViewedMonth ? "var(--color-accent)" : "var(--color-text-muted)",
+          border: `1px solid ${isPaidInViewedMonth ? "var(--color-accent)" : "var(--color-border)"}`,
         }}
       >
-        {isPaidThisMonth ? "Pago" : "Pendente"}
+        {isPaidInViewedMonth ? "Pago" : "Pendente"}
       </button>
 
       <button

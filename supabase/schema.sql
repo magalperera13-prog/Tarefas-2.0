@@ -63,33 +63,69 @@ create table if not exists public.subscriptions (
   -- 'payment_date': o vencimento depende de quando foi paga — algumas assinaturas
   -- renovam a cobrança a partir da data do pagamento, não num dia fixo do mês.
   renewal_type   text not null default 'fixed_day' check (renewal_type in ('fixed_day', 'payment_date')),
-  -- Data (America/Sao_Paulo) do último pagamento registrado. Usada tanto para saber
-  -- se já foi paga no mês atual quanto para estimar o próximo vencimento quando
-  -- renewal_type = 'payment_date'.
-  last_paid_date date,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
 
--- Migração de uma versão anterior do schema (coluna last_paid_month em texto 'YYYY-MM').
+comment on table public.subscriptions is 'Assinaturas recorrentes do usuário.';
+comment on column public.subscriptions.renewal_type is 'fixed_day = vencimento fixo (due_day_label); payment_date = vencimento estimado a partir do último pagamento registrado.';
+
+-- ----------------------------------------------------------------------------
+-- Tabela de pagamentos de assinaturas — um registro por assinatura por mês.
+-- Existir um registro para (subscription_id, month_key) = "paga naquele mês".
+-- Guardar o valor junto (não só apontar pra subscriptions.monthly_amount) para
+-- que o histórico não mude se o valor da assinatura for editado depois.
+-- ----------------------------------------------------------------------------
+create table if not exists public.subscription_payments (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  subscription_id uuid not null references public.subscriptions (id) on delete cascade,
+  -- Mês (America/Sao_Paulo) a que esse pagamento se refere, formato 'YYYY-MM'.
+  month_key       text not null,
+  -- Data real (America/Sao_Paulo) em que o pagamento foi feito — pode cair num
+  -- mês diferente de month_key quando a fatura é paga em atraso.
+  paid_date       date not null,
+  amount          numeric(12, 2) not null check (amount > 0),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+comment on table public.subscription_payments is 'Histórico mensal de pagamentos de cada assinatura.';
+comment on column public.subscription_payments.month_key is 'Mês (YYYY-MM) a que o pagamento se refere.';
+comment on column public.subscription_payments.paid_date is 'Data real em que o pagamento foi efetuado — usada para estimar o próximo vencimento.';
+
+-- Garante a coluna em bancos que ainda não a tinham (versões bem antigas do schema).
 alter table public.subscriptions add column if not exists renewal_type text not null default 'fixed_day';
-alter table public.subscriptions add column if not exists last_paid_date date;
+
+-- ----------------------------------------------------------------------------
+-- Migração de uma versão anterior do schema (coluna subscriptions.last_paid_date
+-- ou last_paid_month, quando existirem) para a nova tabela de pagamentos.
+-- ----------------------------------------------------------------------------
 do $$
 begin
   if exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'subscriptions' and column_name = 'last_paid_month'
   ) then
+    alter table public.subscriptions add column if not exists last_paid_date date;
     update public.subscriptions
       set last_paid_date = (last_paid_month || '-01')::date
       where last_paid_month is not null and last_paid_date is null;
     alter table public.subscriptions drop column last_paid_month;
   end if;
-end $$;
 
-comment on table public.subscriptions is 'Assinaturas recorrentes do usuário — controle mensal de pagamento.';
-comment on column public.subscriptions.renewal_type is 'fixed_day = vencimento fixo (due_day_label); payment_date = vencimento baseado na data do último pagamento.';
-comment on column public.subscriptions.last_paid_date is 'Data (America/Sao_Paulo) do último pagamento registrado.';
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'subscriptions' and column_name = 'last_paid_date'
+  ) then
+    insert into public.subscription_payments (user_id, subscription_id, month_key, paid_date, amount)
+      select user_id, id, to_char(last_paid_date, 'YYYY-MM'), last_paid_date, monthly_amount
+      from public.subscriptions
+      where last_paid_date is not null
+      on conflict do nothing;
+    alter table public.subscriptions drop column last_paid_date;
+  end if;
+end $$;
 
 -- ----------------------------------------------------------------------------
 -- Índices
@@ -101,6 +137,11 @@ create index if not exists tasks_title_search_idx on public.tasks using gin (to_
 create index if not exists expenses_user_date_idx on public.expenses (user_id, expense_date desc);
 
 create index if not exists subscriptions_user_status_idx on public.subscriptions (user_id, status);
+
+create index if not exists subscription_payments_user_idx on public.subscription_payments (user_id);
+create index if not exists subscription_payments_subscription_idx on public.subscription_payments (subscription_id, month_key);
+create unique index if not exists subscription_payments_unique_month
+  on public.subscription_payments (subscription_id, month_key);
 
 -- ----------------------------------------------------------------------------
 -- updated_at automático
@@ -130,6 +171,12 @@ create trigger expenses_set_updated_at
 drop trigger if exists subscriptions_set_updated_at on public.subscriptions;
 create trigger subscriptions_set_updated_at
   before update on public.subscriptions
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists subscription_payments_set_updated_at on public.subscription_payments;
+create trigger subscription_payments_set_updated_at
+  before update on public.subscription_payments
   for each row
   execute function public.set_updated_at();
 
@@ -203,6 +250,29 @@ create policy "subscriptions_update_own"
 drop policy if exists "subscriptions_delete_own" on public.subscriptions;
 create policy "subscriptions_delete_own"
   on public.subscriptions for delete
+  using (auth.uid() = user_id);
+
+alter table public.subscription_payments enable row level security;
+
+drop policy if exists "subscription_payments_select_own" on public.subscription_payments;
+create policy "subscription_payments_select_own"
+  on public.subscription_payments for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "subscription_payments_insert_own" on public.subscription_payments;
+create policy "subscription_payments_insert_own"
+  on public.subscription_payments for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "subscription_payments_update_own" on public.subscription_payments;
+create policy "subscription_payments_update_own"
+  on public.subscription_payments for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "subscription_payments_delete_own" on public.subscription_payments;
+create policy "subscription_payments_delete_own"
+  on public.subscription_payments for delete
   using (auth.uid() = user_id);
 
 -- ============================================================================

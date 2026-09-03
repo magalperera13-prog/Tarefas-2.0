@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ToastProvider";
 import { ExpenseQuickAdd } from "@/components/ExpenseQuickAdd";
@@ -42,10 +42,20 @@ export function ExpensesView({ userId, initialExpenses, initialTotalToday }: Exp
     return monthTotal / days;
   }, [monthTotal, year, month]);
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
-    if (isViewingCurrentMonth) return; // já carregado pelo servidor
+    // A primeira renderização já veio pronta do servidor (mês atual) — só
+    // buscamos de novo a partir da segunda troca de mês em diante. Antes,
+    // esse "pulo" era condicionado a "está vendo o mês atual?", o que fazia
+    // a lista ficar presa nos dados do mês anterior ao voltar para o mês
+    // atual pela navegação. Agora ele só se aplica à primeira montagem.
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- início intencional do carregamento ao trocar de mês
     setLoading(true);
 
     const { start, end } = monthRange(year, month);

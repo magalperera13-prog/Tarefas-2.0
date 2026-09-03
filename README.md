@@ -10,7 +10,8 @@ Painel pessoal de tarefas com histórico mensal automático, com **acesso restri
 - **Descrição opcional por tarefa**: clique numa tarefa (ou no ícone de lápis) para anotar, por exemplo, por que ela ainda não foi feita.
 - **Histórico mensal**: navegação entre meses, agrupado por dia, com pesquisa por texto (título e descrição) e filtro por status (todas / concluídas / pendentes).
 - **Gastos**: uma aba separada para registrar despesas do dia, com total de hoje, total do mês e média de gasto por dia, também navegável por mês.
-- **Assinaturas**: controle de gastos recorrentes (Netflix, internet, hospedagem etc.) com valor mensal, vencimento e observação. Cada uma pode ser marcada como paga no mês atual — a marcação reseta sozinha quando o mês vira. Mostra total mensal, total já pago no mês e total anual estimado.
+- **Assinaturas**: controle de gastos recorrentes (Netflix, internet, hospedagem etc.) com valor mensal, vencimento e observação. Navegável por mês, igual o Histórico e os Gastos — cada mês guarda seu próprio registro de pago/pendente, então o histórico fica registrado com o tempo. Duas formas de vencimento: dia fixo (ex.: "Dia 05") ou baseado na data do pagamento (para assinaturas que renovam a partir de quando você paga, não num dia fixo do calendário) — nesse caso, a data é editável, útil para faturas pagas em atraso. Cada mês também permite registrar um valor diferente do padrão (útil para contas como luz, que variam). Lista sempre ordenada pelo dia de vencimento. Mostra total mensal, total pago no mês visualizado e total anual estimado.
+- **Alerta de vencimento**: a tela Hoje mostra, assim que você entra, quais assinaturas estão vencendo nos próximos dias ou já atrasadas (com base no dia fixo ou na estimativa por data de pagamento).
 - **Acesso restrito a um único proprietário** (veja a seção de segurança abaixo) — não há cadastro público, nem rota `/register`, nem convite de usuários.
 - **Atalho `Ctrl+K`** foca a pesquisa na tela de histórico.
 
@@ -52,7 +53,7 @@ A senha nunca é comparada no código (nada como `if (senha === "...")`); toda a
 
 ## Atualizando um projeto Supabase que você já criou
 
-Se você já rodou uma versão anterior de `supabase/schema.sql`, é só rodar o arquivo atual de novo no SQL Editor — ele é seguro de repetir (idempotente) e vai só adicionar o que falta: a coluna `description` em `tasks`, a tabela `expenses` e a tabela `subscriptions`, cada uma com suas políticas de segurança.
+Se você já rodou uma versão anterior de `supabase/schema.sql`, é só rodar o arquivo atual de novo no SQL Editor — ele é seguro de repetir (idempotente) e vai só adicionar o que falta, migrando dados antigos automaticamente quando necessário (por exemplo, a antiga coluna de "último pagamento" das assinaturas virou uma tabela de histórico mensal `subscription_payments`).
 
 ## 1. Criar o projeto no Supabase e a conta do proprietário
 

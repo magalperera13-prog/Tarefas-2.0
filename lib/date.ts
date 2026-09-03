@@ -108,6 +108,11 @@ export function currentMonthKey(): string {
   return todayISODate().slice(0, 7);
 }
 
+/** "2026-09" a partir de year/month (month = 1-12). */
+export function monthKeyFor(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
 /** Soma 1 mês de calendário a "yyyy-MM-dd", ajustando o dia se o mês de destino for mais curto. */
 export function addOneMonthToDateString(dateISO: string): string {
   const [y, m, d] = dateISO.split("-").map(Number);

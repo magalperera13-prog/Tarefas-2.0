@@ -47,10 +47,18 @@ export interface Subscription {
   due_day_label: string | null;
   status: SubscriptionStatus;
   observation: string | null;
-  /** 'fixed_day': due_day_label é a referência. 'payment_date': o vencimento se baseia em last_paid_date. */
   renewal_type: "fixed_day" | "payment_date";
-  /** Data (yyyy-MM-dd, America/Sao_Paulo) do último pagamento registrado. */
-  last_paid_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionPayment {
+  id: string;
+  user_id: string;
+  subscription_id: string;
+  month_key: string; // 'YYYY-MM'
+  paid_date: string; // 'yyyy-MM-dd'
+  amount: number;
   created_at: string;
   updated_at: string;
 }
