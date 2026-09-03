@@ -13,31 +13,23 @@ export default async function HomePage() {
   const { year, month } = currentYearMonth();
   const { start, end } = monthRange(year, month);
 
-  const [todayTasksRes, overdueTasksRes, completedThisMonthRes, subscriptionsRes, subscriptionPaymentsRes] =
-    await Promise.all([
-      supabase
-        .from("tasks")
-        .select("*")
-        .eq("task_date", todayISO)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("tasks")
-        .select("*")
-        .eq("status", "pending")
-        .lt("task_date", todayISO)
-        .order("task_date", { ascending: true }),
-      supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "completed")
-        .gte("task_date", start)
-        .lte("task_date", end),
-      supabase.from("subscriptions").select("*").eq("status", "active"),
-      supabase.from("subscription_payments").select("*"),
-    ]);
+  const [todayTasksRes, completedThisMonthRes, subscriptionsRes, subscriptionPaymentsRes] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("*")
+      .eq("task_date", todayISO)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "completed")
+      .gte("task_date", start)
+      .lte("task_date", end),
+    supabase.from("subscriptions").select("*").eq("status", "active"),
+    supabase.from("subscription_payments").select("*"),
+  ]);
 
   const initialTasks = (todayTasksRes.data ?? []) as Task[];
-  const initialOverdueTasks = (overdueTasksRes.data ?? []) as Task[];
   const initialCompletedThisMonth = completedThisMonthRes.count ?? 0;
   const ownerName = process.env.NEXT_PUBLIC_OWNER_NAME || "Magal";
 
@@ -54,7 +46,6 @@ export default async function HomePage() {
       <TodayBoard
         userId={user.id}
         initialTasks={initialTasks}
-        initialOverdueTasks={initialOverdueTasks}
         initialCompletedThisMonth={initialCompletedThisMonth}
       />
     </AppShell>
