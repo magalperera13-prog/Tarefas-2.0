@@ -1,5 +1,5 @@
 import { requireOwner } from "@/lib/auth";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { TodayBoard } from "@/components/TodayBoard";
 import { todayISODate, monthRange, currentYearMonth } from "@/lib/date";
 import type { Task } from "@/lib/types";
@@ -37,8 +37,7 @@ export default async function HomePage() {
   const ownerName = process.env.NEXT_PUBLIC_OWNER_NAME || "Magal";
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      <AppHeader userEmail={user.email} />
+    <AppShell userEmail={user.email}>
       <p className="mb-5 font-[family-name:var(--font-display)] text-lg font-semibold">
         Olá, {ownerName} 👋
       </p>
@@ -48,6 +47,6 @@ export default async function HomePage() {
         initialOverdueTasks={initialOverdueTasks}
         initialCompletedThisMonth={initialCompletedThisMonth}
       />
-    </main>
+    </AppShell>
   );
 }

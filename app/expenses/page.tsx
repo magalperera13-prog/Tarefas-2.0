@@ -1,5 +1,5 @@
 import { requireOwner } from "@/lib/auth";
-import { AppHeader } from "@/components/AppHeader";
+import { AppShell } from "@/components/AppShell";
 import { ExpensesView } from "@/components/ExpensesView";
 import { currentYearMonth, monthRange, todayISODate } from "@/lib/date";
 import type { Expense } from "@/lib/types";
@@ -25,9 +25,8 @@ export default async function ExpensesPage() {
     .reduce((sum, e) => sum + e.amount, 0);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      <AppHeader userEmail={user.email} />
+    <AppShell userEmail={user.email}>
       <ExpensesView userId={user.id} initialExpenses={initialExpenses} initialTotalToday={initialTotalToday} />
-    </main>
+    </AppShell>
   );
 }
