@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TodayIcon, HistoryIcon, ExpensesIcon, SubscriptionsIcon, LogoutIcon } from "@/components/icons";
+import { TodayIcon, HistoryIcon, ExpensesIcon, SubscriptionsIcon, BalanceIcon, LogoutIcon } from "@/components/icons";
 
 const NAV_ITEMS = [
   { href: "/", label: "Hoje", Icon: TodayIcon },
   { href: "/history", label: "Histórico", Icon: HistoryIcon },
   { href: "/expenses", label: "Gastos", Icon: ExpensesIcon },
   { href: "/subscriptions", label: "Assinaturas", Icon: SubscriptionsIcon },
+  { href: "/balance", label: "Saldo", Icon: BalanceIcon },
 ];
 
 export function AppShell({ userEmail, children }: { userEmail?: string | null; children: React.ReactNode }) {

@@ -41,6 +41,15 @@ export function SubscriptionsIcon({ className }: { className?: string }) {
   );
 }
 
+export function BalanceIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <circle cx="7.5" cy="7.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none">

@@ -94,6 +94,22 @@ comment on table public.subscription_payments is 'Histórico mensal de pagamento
 comment on column public.subscription_payments.month_key is 'Mês (YYYY-MM) a que o pagamento se refere.';
 comment on column public.subscription_payments.paid_date is 'Data real em que o pagamento foi efetuado — usada para estimar o próximo vencimento.';
 
+-- ----------------------------------------------------------------------------
+-- Tabela de saldo atual — "quanto dinheiro eu tenho", por nome/local.
+-- Não é um histórico de transações: cada linha é editada no lugar quando o
+-- valor muda (ex.: "Poupança Nubank", "Investido na Corretora X").
+-- ----------------------------------------------------------------------------
+create table if not exists public.balances (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  name       text not null check (char_length(trim(name)) > 0),
+  amount     numeric(14, 2) not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+comment on table public.balances is 'Saldo atual do usuário, dividido por nome/local (conta, investimento, dinheiro em espécie etc.).';
+
 -- Garante a coluna em bancos que ainda não a tinham (versões bem antigas do schema).
 alter table public.subscriptions add column if not exists renewal_type text not null default 'fixed_day';
 
@@ -143,6 +159,8 @@ create index if not exists subscription_payments_subscription_idx on public.subs
 create unique index if not exists subscription_payments_unique_month
   on public.subscription_payments (subscription_id, month_key);
 
+create index if not exists balances_user_idx on public.balances (user_id);
+
 -- ----------------------------------------------------------------------------
 -- updated_at automático
 -- ----------------------------------------------------------------------------
@@ -177,6 +195,12 @@ create trigger subscriptions_set_updated_at
 drop trigger if exists subscription_payments_set_updated_at on public.subscription_payments;
 create trigger subscription_payments_set_updated_at
   before update on public.subscription_payments
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists balances_set_updated_at on public.balances;
+create trigger balances_set_updated_at
+  before update on public.balances
   for each row
   execute function public.set_updated_at();
 
@@ -273,6 +297,29 @@ create policy "subscription_payments_update_own"
 drop policy if exists "subscription_payments_delete_own" on public.subscription_payments;
 create policy "subscription_payments_delete_own"
   on public.subscription_payments for delete
+  using (auth.uid() = user_id);
+
+alter table public.balances enable row level security;
+
+drop policy if exists "balances_select_own" on public.balances;
+create policy "balances_select_own"
+  on public.balances for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "balances_insert_own" on public.balances;
+create policy "balances_insert_own"
+  on public.balances for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "balances_update_own" on public.balances;
+create policy "balances_update_own"
+  on public.balances for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "balances_delete_own" on public.balances;
+create policy "balances_delete_own"
+  on public.balances for delete
   using (auth.uid() = user_id);
 
 -- ============================================================================
