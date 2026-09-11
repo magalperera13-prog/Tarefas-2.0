@@ -110,6 +110,25 @@ create table if not exists public.balances (
 
 comment on table public.balances is 'Saldo atual do usuário, dividido por nome/local (conta, investimento, dinheiro em espécie etc.).';
 
+-- ----------------------------------------------------------------------------
+-- Fotografia diária do saldo total — permite calcular crescimento mês a mês.
+-- Uma linha por dia (por usuário); é sobrescrita (upsert) toda vez que o saldo
+-- muda, então o dia de hoje sempre reflete o total mais recente.
+-- ----------------------------------------------------------------------------
+create table if not exists public.balance_snapshots (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references auth.users (id) on delete cascade,
+  snapshot_date date not null,
+  total_amount  numeric(14, 2) not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+comment on table public.balance_snapshots is 'Fotografia diária do saldo total do usuário, para comparar crescimento entre meses.';
+
+create unique index if not exists balance_snapshots_unique_day on public.balance_snapshots (user_id, snapshot_date);
+create index if not exists balance_snapshots_user_date_idx on public.balance_snapshots (user_id, snapshot_date desc);
+
 -- Garante a coluna em bancos que ainda não a tinham (versões bem antigas do schema).
 alter table public.subscriptions add column if not exists renewal_type text not null default 'fixed_day';
 
@@ -201,6 +220,12 @@ create trigger subscription_payments_set_updated_at
 drop trigger if exists balances_set_updated_at on public.balances;
 create trigger balances_set_updated_at
   before update on public.balances
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists balance_snapshots_set_updated_at on public.balance_snapshots;
+create trigger balance_snapshots_set_updated_at
+  before update on public.balance_snapshots
   for each row
   execute function public.set_updated_at();
 
@@ -320,6 +345,29 @@ create policy "balances_update_own"
 drop policy if exists "balances_delete_own" on public.balances;
 create policy "balances_delete_own"
   on public.balances for delete
+  using (auth.uid() = user_id);
+
+alter table public.balance_snapshots enable row level security;
+
+drop policy if exists "balance_snapshots_select_own" on public.balance_snapshots;
+create policy "balance_snapshots_select_own"
+  on public.balance_snapshots for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "balance_snapshots_insert_own" on public.balance_snapshots;
+create policy "balance_snapshots_insert_own"
+  on public.balance_snapshots for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "balance_snapshots_update_own" on public.balance_snapshots;
+create policy "balance_snapshots_update_own"
+  on public.balance_snapshots for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "balance_snapshots_delete_own" on public.balance_snapshots;
+create policy "balance_snapshots_delete_own"
+  on public.balance_snapshots for delete
   using (auth.uid() = user_id);
 
 -- ============================================================================

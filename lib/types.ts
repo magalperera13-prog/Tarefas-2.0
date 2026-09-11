@@ -75,3 +75,12 @@ export interface Balance {
   created_at: string;
   updated_at: string;
 }
+
+export interface BalanceSnapshot {
+  id: string;
+  user_id: string;
+  snapshot_date: string; // yyyy-MM-dd, America/Sao_Paulo
+  total_amount: number;
+  created_at: string;
+  updated_at: string;
+}
