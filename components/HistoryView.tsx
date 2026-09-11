@@ -10,7 +10,24 @@ import { MonthlyCompletedSummary } from "@/components/MonthlyCompletedSummary";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { Task } from "@/lib/types";
-import { currentYearMonth, monthRange, monthYearLabel } from "@/lib/date";
+import {
+  currentYearMonth,
+  monthKeyFromTimestamp,
+  monthRangeUTC,
+  monthYearLabel,
+  toSaoPauloDateString,
+  todayStartUTC,
+} from "@/lib/date";
+
+/** Dia (America/Sao_Paulo) em que a tarefa foi de fato concluída — é essa data,
+ * não a de criação, que manda no Histórico e no resumo de produtividade. */
+function completionDay(task: Task): string {
+  return task.completed_at ? toSaoPauloDateString(task.completed_at) : task.task_date;
+}
+
+function completionMonthKey(task: Task): string {
+  return task.completed_at ? monthKeyFromTimestamp(task.completed_at) : task.task_date.slice(0, 7);
+}
 
 export function HistoryView() {
   const supabase = createClient();
@@ -39,15 +56,18 @@ export function HistoryView() {
 
   useEffect(() => {
     // Resumo de produtividade por mês — busca uma vez, independente do mês navegado.
+    // Conta pela data em que a tarefa foi CONCLUÍDA, não em que foi criada; e
+    // exclui o que foi concluído hoje (hoje ainda "pertence" à tela Hoje).
     supabase
       .from("tasks")
-      .select("task_date")
+      .select("completed_at, task_date")
       .eq("status", "completed")
+      .lt("completed_at", todayStartUTC())
       .then(({ data, error }) => {
         if (error || !data) return;
         const counts = new Map<string, number>();
-        for (const row of data as { task_date: string }[]) {
-          const key = row.task_date.slice(0, 7);
+        for (const row of data as { completed_at: string | null; task_date: string }[]) {
+          const key = row.completed_at ? monthKeyFromTimestamp(row.completed_at) : row.task_date.slice(0, 7);
           counts.set(key, (counts.get(key) ?? 0) + 1);
         }
         const summary = Array.from(counts.entries())
@@ -63,18 +83,19 @@ export function HistoryView() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- início intencional do carregamento ao trocar de mês
     setLoading(true);
 
-    const { start, end } = monthRange(year, month);
+    const { startUTC, endUTCExclusive } = monthRangeUTC(year, month);
+    const upperBound = endUTCExclusive < todayStartUTC() ? endUTCExclusive : todayStartUTC();
 
-    // O Histórico mostra só o que foi de fato concluído naquele mês — tarefas
-    // não concluídas não aparecem aqui (ficam só na tela Hoje, se ainda em aberto).
+    // O Histórico mostra o que foi CONCLUÍDO dentro do mês navegado (pela data
+    // real de conclusão, não pela data em que a tarefa foi criada), e nunca o
+    // que foi concluído hoje (isso ainda fica só na tela Hoje).
     supabase
       .from("tasks")
       .select("*")
       .eq("status", "completed")
-      .gte("task_date", start)
-      .lte("task_date", end)
-      .order("task_date", { ascending: false })
-      .order("created_at", { ascending: false })
+      .gte("completed_at", startUTC)
+      .lt("completed_at", upperBound)
+      .order("completed_at", { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
@@ -101,9 +122,10 @@ export function HistoryView() {
   const grouped = useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const task of filtered) {
-      const list = map.get(task.task_date) ?? [];
+      const key = completionDay(task);
+      const list = map.get(key) ?? [];
       list.push(task);
-      map.set(task.task_date, list);
+      map.set(key, list);
     }
     return Array.from(map.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [filtered]);
@@ -125,11 +147,11 @@ export function HistoryView() {
     const patch = { status: "pending" as const, completed_at: null };
 
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    adjustMonthlySummary(task.task_date.slice(0, 7), -1);
+    adjustMonthlySummary(completionMonthKey(task), -1);
     const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
     if (error) {
       setTasks((prev) => [task, ...prev]);
-      adjustMonthlySummary(task.task_date.slice(0, 7), 1);
+      adjustMonthlySummary(completionMonthKey(task), 1);
       showToast("Não foi possível atualizar a tarefa", "danger");
       return;
     }
@@ -150,11 +172,11 @@ export function HistoryView() {
     const task = pendingDelete;
     setPendingDelete(null);
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
-    adjustMonthlySummary(task.task_date.slice(0, 7), -1);
+    adjustMonthlySummary(completionMonthKey(task), -1);
     const { error } = await supabase.from("tasks").delete().eq("id", task.id);
     if (error) {
       setTasks((prev) => [task, ...prev]);
-      adjustMonthlySummary(task.task_date.slice(0, 7), 1);
+      adjustMonthlySummary(completionMonthKey(task), 1);
       showToast("Não foi possível excluir a tarefa", "danger");
       return;
     }

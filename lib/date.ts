@@ -1,4 +1,4 @@
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { formatInTimeZone, toZonedTime, fromZonedTime } from "date-fns-tz";
 
 export const APP_TIME_ZONE = "America/Sao_Paulo";
 
@@ -133,4 +133,33 @@ export function isSameOrFutureMonth(year: number, month: number): boolean {
   if (year > now.year) return true;
   if (year === now.year && month >= now.month) return true;
   return false;
+}
+
+/** "2026-08-27" — dia (America/Sao_Paulo) em que um timestamp ISO/UTC caiu. */
+export function toSaoPauloDateString(isoTimestamp: string): string {
+  return formatInTimeZone(new Date(isoTimestamp), APP_TIME_ZONE, "yyyy-MM-dd");
+}
+
+/** "2026-08" — mês (America/Sao_Paulo) em que um timestamp ISO/UTC caiu. */
+export function monthKeyFromTimestamp(isoTimestamp: string): string {
+  return formatInTimeZone(new Date(isoTimestamp), APP_TIME_ZONE, "yyyy-MM");
+}
+
+/** Início do dia de hoje (America/Sao_Paulo), como timestamp UTC ISO — usado para
+ * comparar contra colunas timestamptz como completed_at. */
+export function todayStartUTC(): string {
+  return fromZonedTime(`${todayISODate()}T00:00:00`, APP_TIME_ZONE).toISOString();
+}
+
+/** Início (inclusive) e fim (exclusivo) de um mês, em America/Sao_Paulo, como
+ * timestamps UTC ISO — usado para comparar contra colunas timestamptz (ex.: completed_at). */
+export function monthRangeUTC(year: number, month: number): { startUTC: string; endUTCExclusive: string } {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const startLocal = `${year}-${pad(month)}-01T00:00:00`;
+  const next = addMonths(year, month, 1);
+  const endLocal = `${next.year}-${pad(next.month)}-01T00:00:00`;
+  return {
+    startUTC: fromZonedTime(startLocal, APP_TIME_ZONE).toISOString(),
+    endUTCExclusive: fromZonedTime(endLocal, APP_TIME_ZONE).toISOString(),
+  };
 }

@@ -2,7 +2,7 @@ import { requireOwner } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { TodayBoard } from "@/components/TodayBoard";
 import { SubscriptionsDueAlert } from "@/components/SubscriptionsDueAlert";
-import { todayISODate, monthRange, currentYearMonth } from "@/lib/date";
+import { todayISODate, monthRangeUTC, currentYearMonth } from "@/lib/date";
 import { getDueSoonSubscriptions } from "@/lib/subscriptions";
 import type { Subscription, SubscriptionPayment, Task } from "@/lib/types";
 
@@ -11,7 +11,7 @@ export default async function HomePage() {
 
   const todayISO = todayISODate();
   const { year, month } = currentYearMonth();
-  const { start, end } = monthRange(year, month);
+  const { startUTC, endUTCExclusive } = monthRangeUTC(year, month);
 
   const [todayTasksRes, overdueTasksRes, completedThisMonthRes, subscriptionsRes, subscriptionPaymentsRes] =
     await Promise.all([
@@ -30,8 +30,8 @@ export default async function HomePage() {
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .eq("status", "completed")
-        .gte("task_date", start)
-        .lte("task_date", end),
+        .gte("completed_at", startUTC)
+        .lt("completed_at", endUTCExclusive),
       supabase.from("subscriptions").select("*").eq("status", "active"),
       supabase.from("subscription_payments").select("*"),
     ]);

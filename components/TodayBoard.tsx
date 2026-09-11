@@ -33,7 +33,6 @@ export function TodayBoard({
 
   const todayISO = useMemo(() => todayISODate(), []);
   const { year, month } = useMemo(() => currentYearMonth(), []);
-  const currentMonthPrefix = todayISO.slice(0, 7);
 
   const completedToday = tasks.filter((t) => t.status === "completed").length;
   const pendingToday = tasks.length - completedToday;
@@ -63,12 +62,12 @@ export function TodayBoard({
       setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
     } else {
       // Uma pendência atrasada some da lista assim que é concluída — ela passa
-      // a fazer parte do histórico do dia original, não da tela Hoje.
+      // a fazer parte do histórico do dia em que foi concluída, não da tela Hoje.
       setOverdueTasks((prev) => prev.filter((t) => t.id !== task.id));
     }
-    if (completing && task.task_date.startsWith(currentMonthPrefix)) {
-      setCompletedThisMonth((prev) => prev + 1);
-    }
+    // Marcar ou desmarcar como concluída sempre acontece agora, no mês atual —
+    // "Concluídas no mês" sempre reflete quando a tarefa foi de fato concluída.
+    setCompletedThisMonth((prev) => prev + (completing ? 1 : -1));
 
     const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
     if (error) {
@@ -77,9 +76,7 @@ export function TodayBoard({
       } else {
         setOverdueTasks((prev) => [...prev, task]);
       }
-      if (completing && task.task_date.startsWith(currentMonthPrefix)) {
-        setCompletedThisMonth((prev) => prev - 1);
-      }
+      setCompletedThisMonth((prev) => prev - (completing ? 1 : -1));
       showToast("Não foi possível atualizar a tarefa", "danger");
       return;
     }
@@ -111,7 +108,7 @@ export function TodayBoard({
     } else {
       setOverdueTasks((prev) => prev.filter((t) => t.id !== task.id));
     }
-    if (task.status === "completed" && task.task_date.startsWith(currentMonthPrefix)) {
+    if (task.status === "completed") {
       setCompletedThisMonth((prev) => prev - 1);
     }
 
@@ -122,7 +119,7 @@ export function TodayBoard({
       } else {
         setOverdueTasks((prev) => [...prev, task]);
       }
-      if (task.status === "completed" && task.task_date.startsWith(currentMonthPrefix)) {
+      if (task.status === "completed") {
         setCompletedThisMonth((prev) => prev + 1);
       }
       showToast("Não foi possível excluir a tarefa", "danger");
