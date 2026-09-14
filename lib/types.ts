@@ -84,3 +84,16 @@ export interface BalanceSnapshot {
   created_at: string;
   updated_at: string;
 }
+
+export interface Credential {
+  id: string;
+  user_id: string;
+  service_name: string;
+  login_identifier: string | null;
+  // Já em texto puro aqui — descriptografada no servidor antes de chegar
+  // ao componente cliente. Nunca corresponde à coluna crua do banco.
+  password: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}

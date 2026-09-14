@@ -50,6 +50,15 @@ export function BalanceIcon({ className }: { className?: string }) {
   );
 }
 
+export function CredentialsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <circle cx="7" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9.5 9.5L16.5 16.5M13.5 13.5l2-2M15.5 15.5l2-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none">

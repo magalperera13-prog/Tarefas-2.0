@@ -13,6 +13,7 @@ Painel pessoal de tarefas com histórico mensal automático, com **acesso restri
 - **Assinaturas**: controle de gastos recorrentes (Netflix, internet, hospedagem etc.) com valor mensal, vencimento e observação. Navegável por mês, igual o Histórico e os Gastos — cada mês guarda seu próprio registro de pago/pendente, então o histórico fica registrado com o tempo. Duas formas de vencimento: dia fixo (ex.: "Dia 05") ou baseado na data do pagamento (para assinaturas que renovam a partir de quando você paga, não num dia fixo do calendário) — nesse caso, a data é editável, útil para faturas pagas em atraso. Cada mês também permite registrar um valor diferente do padrão (útil para contas como luz, que variam). Lista sempre ordenada pelo dia de vencimento. Mostra total mensal, total pago no mês visualizado e total anual estimado.
 - **Alerta de vencimento**: a tela Hoje mostra, assim que você entra, quais assinaturas estão vencendo nos próximos dias ou já atrasadas (com base no dia fixo ou na estimativa por data de pagamento).
 - **Saldo Atual**: uma lista simples de "onde está seu dinheiro" — nome (conta, investimento, dinheiro em espécie etc.) e valor, com o total somado no topo. Registra automaticamente uma fotografia diária do total (sem precisar de nenhuma ação sua), usada para mostrar o crescimento mês a mês — quanto aumentou ou diminuiu em reais e em porcentagem, inclusive durante o mês atual comparado ao mês anterior.
+- **Senhas**: guarda e-mail/login e senha de assinaturas e sites. A senha é criptografada no servidor (AES-256) antes de ser salva — o Supabase nunca vê o valor em texto puro. Cada senha fica mascarada por padrão, com botão pra revelar e botões de copiar (e-mail e senha) separados.
 - **Acesso restrito a um único proprietário** (veja a seção de segurança abaixo) — não há cadastro público, nem rota `/register`, nem convite de usuários.
 - **Atalho `Ctrl+K`** foca a pesquisa na tela de histórico.
 
@@ -85,9 +86,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-publica
 AUTHORIZED_EMAIL=seu-email@exemplo.com
 NEXT_PUBLIC_OWNER_NAME=Magal
+CREDENTIALS_ENCRYPTION_KEY=uma-chave-aleatoria-bem-longa
 ```
 
-`AUTHORIZED_EMAIL` precisa ser exatamente o e-mail da conta criada no passo 1.4. `NEXT_PUBLIC_OWNER_NAME` só controla a saudação "Olá, Magal 👋" no painel — não é sensível.
+`AUTHORIZED_EMAIL` precisa ser exatamente o e-mail da conta criada no passo 1.4. `NEXT_PUBLIC_OWNER_NAME` só controla a saudação "Olá, Magal 👋" no painel — não é sensível. `CREDENTIALS_ENCRYPTION_KEY` protege as senhas salvas na aba "Senhas" — gere uma string aleatória longa (ex.: `openssl rand -hex 32`) e **guarde-a em lugar seguro fora do sistema**. Se ela mudar ou se perder, tudo que já foi salvo em "Senhas" fica ilegível para sempre — não tem como recuperar.
 
 ## 3. Rodar localmente
 
