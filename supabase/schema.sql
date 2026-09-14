@@ -116,7 +116,6 @@ create table if not exists public.credentials (
 
 comment on table public.credentials is 'Credenciais (e-mail/login + senha) de assinaturas e sites — senha sempre criptografada pelo servidor antes de chegar aqui.';
 comment on column public.credentials.password_encrypted is 'Senha criptografada (AES-256-GCM) pelo servidor — nunca texto puro.';
-comment on column public.credentials.category is 'streaming | trabalho_ia | outros — define em qual bloco a credencial aparece.';
 
 -- Garante a coluna em bancos que já tinham a tabela credentials sem categoria.
 alter table public.credentials add column if not exists category text not null default 'outros';
@@ -129,6 +128,8 @@ begin
       add constraint credentials_category_check check (category in ('streaming', 'trabalho_ia', 'outros'));
   end if;
 end $$;
+
+comment on column public.credentials.category is 'streaming | trabalho_ia | outros — define em qual bloco a credencial aparece.';
 
 -- ----------------------------------------------------------------------------
 -- Tabela de saldo atual — "quanto dinheiro eu tenho", por nome/local.

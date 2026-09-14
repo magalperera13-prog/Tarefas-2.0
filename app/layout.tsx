@@ -5,12 +5,18 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Minhas Tarefas",
   description: "Painel pessoal de tarefas com histórico automático.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Minhas Tarefas",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#0e1117",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
