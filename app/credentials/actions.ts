@@ -2,11 +2,13 @@
 
 import { requireOwner } from "@/lib/auth";
 import { encryptSecret } from "@/lib/crypto";
+import type { CredentialCategory } from "@/lib/types";
 
 export async function addCredentialAction(
   serviceName: string,
   loginIdentifier: string | null,
-  password: string
+  password: string,
+  category: CredentialCategory
 ): Promise<{ id: string; created_at: string; updated_at: string } | { error: string }> {
   const { supabase, user } = await requireOwner();
 
@@ -17,6 +19,7 @@ export async function addCredentialAction(
       service_name: serviceName,
       login_identifier: loginIdentifier,
       password_encrypted: encryptSecret(password),
+      category,
     })
     .select("id, created_at, updated_at")
     .single();
@@ -27,7 +30,13 @@ export async function addCredentialAction(
 
 export async function updateCredentialAction(
   id: string,
-  changes: { service_name: string; login_identifier: string | null; password: string; notes: string | null }
+  changes: {
+    service_name: string;
+    login_identifier: string | null;
+    password: string;
+    notes: string | null;
+    category: CredentialCategory;
+  }
 ): Promise<{ updated_at: string } | { error: string }> {
   const { supabase } = await requireOwner();
 
@@ -38,6 +47,7 @@ export async function updateCredentialAction(
       login_identifier: changes.login_identifier,
       password_encrypted: encryptSecret(changes.password),
       notes: changes.notes,
+      category: changes.category,
     })
     .eq("id", id)
     .select("updated_at")

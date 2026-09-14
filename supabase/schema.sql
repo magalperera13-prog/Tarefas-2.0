@@ -108,12 +108,27 @@ create table if not exists public.credentials (
   login_identifier   text,
   password_encrypted text not null,
   notes              text,
+  -- Agrupa os registros em blocos na tela: Streaming, Trabalho/IA, Outros sites.
+  category           text not null default 'outros' check (category in ('streaming', 'trabalho_ia', 'outros')),
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()
 );
 
 comment on table public.credentials is 'Credenciais (e-mail/login + senha) de assinaturas e sites — senha sempre criptografada pelo servidor antes de chegar aqui.';
 comment on column public.credentials.password_encrypted is 'Senha criptografada (AES-256-GCM) pelo servidor — nunca texto puro.';
+comment on column public.credentials.category is 'streaming | trabalho_ia | outros — define em qual bloco a credencial aparece.';
+
+-- Garante a coluna em bancos que já tinham a tabela credentials sem categoria.
+alter table public.credentials add column if not exists category text not null default 'outros';
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'credentials_category_check'
+  ) then
+    alter table public.credentials
+      add constraint credentials_category_check check (category in ('streaming', 'trabalho_ia', 'outros'));
+  end if;
+end $$;
 
 -- ----------------------------------------------------------------------------
 -- Tabela de saldo atual — "quanto dinheiro eu tenho", por nome/local.

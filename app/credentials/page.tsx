@@ -18,6 +18,7 @@ export default async function CredentialsPage() {
         login_identifier: row.login_identifier,
         password: decryptSecret(row.password_encrypted),
         notes: row.notes,
+        category: row.category ?? "outros",
         created_at: row.created_at,
         updated_at: row.updated_at,
       }));

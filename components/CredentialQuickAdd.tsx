@@ -1,15 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import type { CredentialCategory } from "@/lib/types";
+import { CREDENTIAL_CATEGORIES } from "@/lib/credential-categories";
 
 export function CredentialQuickAdd({
   onAdd,
 }: {
-  onAdd: (serviceName: string, loginIdentifier: string | null, password: string) => Promise<void> | void;
+  onAdd: (
+    serviceName: string,
+    loginIdentifier: string | null,
+    password: string,
+    category: CredentialCategory
+  ) => Promise<void> | void;
 }) {
   const [serviceName, setServiceName] = useState("");
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [category, setCategory] = useState<CredentialCategory>("outros");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -21,11 +29,12 @@ export function CredentialQuickAdd({
     const name = serviceName.trim();
     const login = loginIdentifier.trim() || null;
     const pass = password;
+    const cat = category;
     setServiceName("");
     setLoginIdentifier("");
     setPassword("");
     try {
-      await onAdd(name, login, pass);
+      await onAdd(name, login, pass, cat);
     } finally {
       setSubmitting(false);
     }
@@ -54,6 +63,25 @@ export function CredentialQuickAdd({
           style={{ borderColor: "var(--color-border)", background: "var(--color-bg-inset)" }}
         />
       </div>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {CREDENTIAL_CATEGORIES.map((c) => (
+          <button
+            key={c.value}
+            type="button"
+            onClick={() => setCategory(c.value)}
+            className="rounded-full px-2.5 py-1 text-[11px] font-medium transition"
+            style={{
+              background: category === c.value ? "var(--color-accent-soft)" : "transparent",
+              color: category === c.value ? "var(--color-accent)" : "var(--color-text-muted)",
+              border: `1px solid ${category === c.value ? "var(--color-accent)" : "var(--color-border)"}`,
+            }}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-center gap-2">
         <div
           className="relative flex min-w-0 flex-1 items-center rounded-xl border"
@@ -90,7 +118,7 @@ export function CredentialQuickAdd({
           onClick={submit}
           disabled={!canSubmit}
           className="shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-40"
-          style={{ background: "var(--color-brand)", color: "#fff8f3" }}
+          style={{ background: "var(--color-accent)", color: "#062017" }}
         >
           Adicionar
         </button>

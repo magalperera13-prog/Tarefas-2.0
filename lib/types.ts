@@ -85,6 +85,8 @@ export interface BalanceSnapshot {
   updated_at: string;
 }
 
+export type CredentialCategory = "streaming" | "trabalho_ia" | "outros";
+
 export interface Credential {
   id: string;
   user_id: string;
@@ -94,6 +96,7 @@ export interface Credential {
   // ao componente cliente. Nunca corresponde à coluna crua do banco.
   password: string;
   notes: string | null;
+  category: CredentialCategory;
   created_at: string;
   updated_at: string;
 }
