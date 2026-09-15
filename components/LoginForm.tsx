@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,6 +17,16 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Rede de segurança: se o link de "esqueci minha senha" cair aqui em vez
+    // de em /reset-password (o Supabase às vezes redireciona pra Site URL em
+    // vez do redirectTo pedido), o hash com o token de recuperação ainda vem
+    // junto na URL — só é preciso levar o usuário pro lugar certo com ele.
+    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+      window.location.replace(`/reset-password${window.location.hash}`);
+    }
+  }, []);
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();

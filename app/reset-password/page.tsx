@@ -17,9 +17,25 @@ export default function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setStatus(session ? "ready" : "invalid");
-    });
+    // Cobre os dois formatos de link de recuperação que o Supabase pode
+    // gerar: hash (#access_token=...), já resolvido sozinho pelo
+    // getSession() logo abaixo, e "code" (?code=...), que precisa ser
+    // trocado por uma sessão explicitamente antes de checar.
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    const resolve = code ? supabase.auth.exchangeCodeForSession(code) : Promise.resolve();
+
+    resolve
+      .catch(() => {
+        // Se o code já tiver sido usado ou expirado, deixa o getSession()
+        // abaixo decidir — provavelmente vai dar "invalid" mesmo.
+      })
+      .finally(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setStatus(session ? "ready" : "invalid");
+        });
+      });
   }, [supabase]);
 
   async function handleSubmit(e: React.FormEvent) {

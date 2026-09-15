@@ -49,7 +49,15 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    // Rede de segurança: um link de recuperação de senha no formato "code"
+    // (PKCE) chega como ?code=... em vez de #access_token=... — se cair aqui
+    // sem sessão, é isso, então manda pra /reset-password com o code junto,
+    // em vez de simplesmente jogar pro login e perder o link.
+    if (request.nextUrl.searchParams.has("code")) {
+      url.pathname = "/reset-password";
+    } else {
+      url.pathname = "/login";
+    }
     return NextResponse.redirect(url);
   }
 
