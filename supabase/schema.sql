@@ -171,6 +171,24 @@ comment on table public.balance_snapshots is 'Fotografia diária do saldo total 
 create unique index if not exists balance_snapshots_unique_day on public.balance_snapshots (user_id, snapshot_date);
 create index if not exists balance_snapshots_user_date_idx on public.balance_snapshots (user_id, snapshot_date desc);
 
+-- ----------------------------------------------------------------------------
+-- Registro de treinos — Fitness. Uma linha por dia treinado (por usuário).
+-- A ausência de linha para uma data passada significa "não treinado"; não há
+-- conceito de "dia de descanso" — todos os 7 dias da semana contam.
+-- ----------------------------------------------------------------------------
+create table if not exists public.workout_logs (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references auth.users (id) on delete cascade,
+  workout_date date not null,
+  completed_at timestamptz not null default now(),
+  created_at   timestamptz not null default now()
+);
+
+comment on table public.workout_logs is 'Um registro por dia em que o usuário treinou. Sem linha = não treinado nesse dia.';
+
+create unique index if not exists workout_logs_unique_day on public.workout_logs (user_id, workout_date);
+create index if not exists workout_logs_user_date_idx on public.workout_logs (user_id, workout_date desc);
+
 -- Garante a coluna em bancos que ainda não a tinham (versões bem antigas do schema).
 alter table public.subscriptions add column if not exists renewal_type text not null default 'fixed_day';
 
@@ -441,6 +459,29 @@ create policy "credentials_update_own"
 drop policy if exists "credentials_delete_own" on public.credentials;
 create policy "credentials_delete_own"
   on public.credentials for delete
+  using (auth.uid() = user_id);
+
+alter table public.workout_logs enable row level security;
+
+drop policy if exists "workout_logs_select_own" on public.workout_logs;
+create policy "workout_logs_select_own"
+  on public.workout_logs for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "workout_logs_insert_own" on public.workout_logs;
+create policy "workout_logs_insert_own"
+  on public.workout_logs for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "workout_logs_update_own" on public.workout_logs;
+create policy "workout_logs_update_own"
+  on public.workout_logs for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "workout_logs_delete_own" on public.workout_logs;
+create policy "workout_logs_delete_own"
+  on public.workout_logs for delete
   using (auth.uid() = user_id);
 
 -- ============================================================================

@@ -3,13 +3,23 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TodayIcon, HistoryIcon, ExpensesIcon, SubscriptionsIcon, BalanceIcon, CredentialsIcon, LogoutIcon } from "@/components/icons";
+import {
+  TodayIcon,
+  HistoryIcon,
+  ExpensesIcon,
+  SubscriptionsIcon,
+  BalanceIcon,
+  FitnessIcon,
+  CredentialsIcon,
+  LogoutIcon,
+} from "@/components/icons";
 
 const NAV_ITEMS = [
   { href: "/", label: "Hoje", Icon: TodayIcon },
   { href: "/history", label: "Histórico", Icon: HistoryIcon },
   { href: "/expenses", label: "Gastos", Icon: ExpensesIcon },
   { href: "/subscriptions", label: "Assinaturas", Icon: SubscriptionsIcon },
+  { href: "/fitness", label: "Fitness", Icon: FitnessIcon },
   { href: "/balance", label: "Saldo", Icon: BalanceIcon },
   { href: "/credentials", label: "Senhas", Icon: CredentialsIcon },
 ];

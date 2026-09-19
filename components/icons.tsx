@@ -59,6 +59,18 @@ export function CredentialsIcon({ className }: { className?: string }) {
   );
 }
 
+export function FitnessIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <path d="M2.5 10h1.8M15.7 10h1.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5.8 7.2v5.6M14.2 7.2v5.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M7.8 10h4.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="4.3" y="8.3" width="3" height="3.4" rx="0.8" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="12.7" y="8.3" width="3" height="3.4" rx="0.8" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 export function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none">

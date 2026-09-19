@@ -151,6 +151,37 @@ export function todayStartUTC(): string {
   return fromZonedTime(`${todayISODate()}T00:00:00`, APP_TIME_ZONE).toISOString();
 }
 
+/** Soma (ou subtrai, com delta negativo) dias de calendário a "yyyy-MM-dd". */
+export function addDaysToDateString(dateISO: string, delta: number): string {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + delta));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
+}
+
+/** Segunda-feira (yyyy-MM-dd) da semana (seg-dom) que contém a data dada. */
+export function mondayOfWeek(dateISO: string): string {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=domingo..6=sábado
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  return addDaysToDateString(dateISO, diff);
+}
+
+/** Número de dias de calendário entre duas datas "yyyy-MM-dd" (b - a). */
+export function daysBetween(aISO: string, bISO: string): number {
+  const [ay, am, ad] = aISO.split("-").map(Number);
+  const [by, bm, bd] = bISO.split("-").map(Number);
+  const a = Date.UTC(ay, am - 1, ad);
+  const b = Date.UTC(by, bm - 1, bd);
+  return Math.round((b - a) / 86400000);
+}
+
+/** Índice do dia da semana (0=domingo..6=sábado) de "yyyy-MM-dd". */
+export function weekdayIndex(dateISO: string): number {
+  const [y, m, d] = dateISO.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
 /** Início (inclusive) e fim (exclusivo) de um mês, em America/Sao_Paulo, como
  * timestamps UTC ISO — usado para comparar contra colunas timestamptz (ex.: completed_at). */
 export function monthRangeUTC(year: number, month: number): { startUTC: string; endUTCExclusive: string } {

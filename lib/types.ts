@@ -13,6 +13,14 @@ export interface Task {
   updated_at: string;
 }
 
+export interface WorkoutLog {
+  id: string;
+  user_id: string;
+  workout_date: string; // yyyy-MM-dd, no fuso America/Sao_Paulo
+  completed_at: string;
+  created_at: string;
+}
+
 export interface DashboardStats {
   today: number;
   completedToday: number;
