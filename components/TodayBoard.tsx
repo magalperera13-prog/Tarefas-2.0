@@ -40,7 +40,7 @@ export function TodayBoard({
   async function handleAdd(title: string) {
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ title, user_id: userId, task_date: todayISO, status: "pending" })
+      .insert({ title, user_id: userId, task_date: todayISO, status: "pending", is_blocked: false })
       .select()
       .single();
 
@@ -55,7 +55,7 @@ export function TodayBoard({
   async function handleToggle(task: Task, list: "today" | "overdue") {
     const completing = task.status !== "completed";
     const patch = completing
-      ? { status: "completed" as const, completed_at: new Date().toISOString() }
+      ? { status: "completed" as const, completed_at: new Date().toISOString(), is_blocked: false }
       : { status: "pending" as const, completed_at: null };
 
     if (list === "today") {
@@ -81,6 +81,20 @@ export function TodayBoard({
       return;
     }
     showToast(completing ? "✓ Tarefa concluída" : "Tarefa reaberta");
+  }
+
+  async function handleToggleBlock(task: Task, list: "today" | "overdue") {
+    const nextBlocked = !task.is_blocked;
+    const setter = list === "today" ? setTasks : setOverdueTasks;
+    setter((prev) => prev.map((t) => (t.id === task.id ? { ...t, is_blocked: nextBlocked } : t)));
+
+    const { error } = await supabase.from("tasks").update({ is_blocked: nextBlocked }).eq("id", task.id);
+    if (error) {
+      setter((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+      showToast("Não foi possível atualizar a tarefa", "danger");
+      return;
+    }
+    showToast(nextBlocked ? "Tarefa movida para Aguardando algo" : "Tarefa de volta às listas normais");
   }
 
   async function handleSaveEdit(
@@ -128,12 +142,26 @@ export function TodayBoard({
     showToast("✓ Tarefa excluída");
   }
 
-  const sortedToday = [...tasks].sort((a, b) => {
-    if (a.status !== b.status) return a.status === "completed" ? 1 : -1;
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const isActiveBlocked = (t: Task) => t.is_blocked && t.status === "pending";
 
-  const sortedOverdue = [...overdueTasks].sort((a, b) => (a.task_date < b.task_date ? -1 : 1));
+  const sortedToday = tasks
+    .filter((t) => !isActiveBlocked(t))
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === "completed" ? 1 : -1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+  const sortedOverdue = overdueTasks
+    .filter((t) => !isActiveBlocked(t))
+    .sort((a, b) => (a.task_date < b.task_date ? -1 : 1));
+
+  const blockedItems = useMemo(() => {
+    const fromToday = tasks.filter(isActiveBlocked).map((task) => ({ task, list: "today" as const }));
+    const fromOverdue = overdueTasks.filter(isActiveBlocked).map((task) => ({ task, list: "overdue" as const }));
+    return [...fromToday, ...fromOverdue].sort(
+      (a, b) => new Date(a.task.created_at).getTime() - new Date(b.task.created_at).getTime()
+    );
+  }, [tasks, overdueTasks]);
 
   return (
     <div className="space-y-6">
@@ -166,6 +194,7 @@ export function TodayBoard({
                 onToggle={(t) => handleToggle(t, "overdue")}
                 onSaveEdit={(t, changes) => handleSaveEdit(t, changes, "overdue")}
                 onDeleteRequest={setPendingDelete}
+                onToggleBlock={(t) => handleToggleBlock(t, "overdue")}
               />
             ))}
           </div>
@@ -191,11 +220,36 @@ export function TodayBoard({
                 onToggle={(t) => handleToggle(t, "today")}
                 onSaveEdit={(t, changes) => handleSaveEdit(t, changes, "today")}
                 onDeleteRequest={setPendingDelete}
+                onToggleBlock={(t) => handleToggleBlock(t, "today")}
               />
             ))}
           </div>
         )}
       </div>
+
+      {blockedItems.length > 0 && (
+        <div>
+          <h2
+            className="mb-3 font-[family-name:var(--font-display)] text-sm font-semibold tracking-wide"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            AGUARDANDO ALGO ({blockedItems.length})
+          </h2>
+          <div className="space-y-2">
+            {blockedItems.map(({ task, list }) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                overdueSince={list === "overdue" ? task.task_date : undefined}
+                onToggle={(t) => handleToggle(t, list)}
+                onSaveEdit={(t, changes) => handleSaveEdit(t, changes, list)}
+                onDeleteRequest={setPendingDelete}
+                onToggleBlock={(t) => handleToggleBlock(t, list)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={!!pendingDelete}

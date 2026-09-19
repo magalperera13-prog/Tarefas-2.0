@@ -7,6 +7,7 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   task_date: string; // yyyy-MM-dd, no fuso America/Sao_Paulo
+  is_blocked: boolean;
   created_at: string; // timestamptz ISO
   completed_at: string | null;
   updated_at: string;

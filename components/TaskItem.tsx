@@ -13,6 +13,8 @@ interface TaskItemProps {
   showPendingBadge?: boolean;
   /** Quando definido (tela Hoje), mostra que essa pendência é de um dia anterior. */
   overdueSince?: string;
+  /** Quando fornecido, mostra o botão para mover a tarefa de/para o bloco "Aguardando algo". */
+  onToggleBlock?: (task: Task) => void;
 }
 
 export function TaskItem({
@@ -22,6 +24,7 @@ export function TaskItem({
   onDeleteRequest,
   showPendingBadge,
   overdueSince,
+  onToggleBlock,
 }: TaskItemProps) {
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(task.title);
@@ -154,6 +157,10 @@ export function TaskItem({
         <p className="mt-1 font-[family-name:var(--font-mono)] text-[11px] tabular" style={{ color: "var(--color-text-faint)" }}>
           {completed ? (
             <>concluída às {formatTime(task.completed_at ?? task.updated_at)}</>
+          ) : task.is_blocked ? (
+            <span style={{ color: "var(--color-text-muted)" }}>
+              ⏳ aguardando algo{overdueSince ? ` · atrasada desde ${formatDateBR(overdueSince)}` : ""}
+            </span>
           ) : overdueSince ? (
             <span style={{ color: "var(--color-pending)" }}>atrasada desde {formatDateBR(overdueSince)}</span>
           ) : showPendingBadge ? (
@@ -165,6 +172,25 @@ export function TaskItem({
       </div>
 
       <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+        {onToggleBlock && !completed && (
+          <button
+            onClick={() => onToggleBlock(task)}
+            aria-label={task.is_blocked ? "Mover de volta para tarefas do dia" : "Marcar como aguardando algo"}
+            title={task.is_blocked ? "Mover de volta para tarefas do dia" : "Marcar como aguardando algo"}
+            className="rounded-lg p-1.5 transition hover:bg-white/5"
+            style={{ color: task.is_blocked ? "var(--color-brand, var(--color-accent))" : "var(--color-text-muted)" }}
+          >
+            <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none">
+              <path
+                d="M5.5 3h9M5.5 17h9M6.5 3v2.2c0 1 .45 1.95 1.23 2.58L10 9.5l2.27-1.72A3.3 3.3 0 0013.5 5.2V3M6.5 17v-2.2c0-1 .45-1.95 1.23-2.58L10 10.5l2.27 1.72c.78.63 1.23 1.58 1.23 2.58V17"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        )}
         <button
           onClick={startEditing}
           aria-label="Editar tarefa"

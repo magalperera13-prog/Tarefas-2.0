@@ -19,17 +19,22 @@ create table if not exists public.tasks (
   -- no momento da criação. É esse campo, e não created_at, que decide se a
   -- tarefa aparece em "Tarefas do dia" ou no histórico.
   task_date    date not null,
+  -- Quando true, a tarefa está esperando algo externo (não depende só do
+  -- usuário) e aparece no bloco "Aguardando algo" em vez de nas listas normais.
+  is_blocked   boolean not null default false,
   created_at   timestamptz not null default now(),
   completed_at timestamptz,
   updated_at   timestamptz not null default now()
 );
 
--- Adiciona a coluna em bancos criados antes dessa versão do schema.
+-- Adiciona as colunas em bancos criados antes dessa versão do schema.
 alter table public.tasks add column if not exists description text;
+alter table public.tasks add column if not exists is_blocked boolean not null default false;
 
 comment on table public.tasks is 'Tarefas pessoais do usuário, com histórico automático por task_date.';
 comment on column public.tasks.task_date is 'Dia (America/Sao_Paulo) ao qual a tarefa pertence.';
 comment on column public.tasks.description is 'Descrição opcional — por exemplo, por que a tarefa ainda não foi concluída.';
+comment on column public.tasks.is_blocked is 'Tarefa aguardando algo externo antes de poder ser concluída.';
 
 -- ----------------------------------------------------------------------------
 -- Tabela de gastos
