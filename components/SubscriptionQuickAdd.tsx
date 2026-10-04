@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { parseBRLAmount } from "@/lib/format";
 
 export function SubscriptionQuickAdd({
   onAdd,
@@ -12,7 +13,7 @@ export function SubscriptionQuickAdd({
   const [dueDay, setDueDay] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const parsedAmount = Number(amount.replace(",", "."));
+  const parsedAmount = parseBRLAmount(amount);
   const canSubmit = name.trim().length > 0 && parsedAmount > 0 && !submitting;
 
   async function submit() {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Balance } from "@/lib/types";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, parseBRLAmount } from "@/lib/format";
 
 interface BalanceItemProps {
   balance: Balance;
@@ -31,7 +31,7 @@ export function BalanceItem({ balance, onSaveEdit, onDeleteRequest }: BalanceIte
 
   function commitEdit() {
     const name = draftName.trim();
-    const amount = Number(draftAmount.replace(",", "."));
+    const amount = parseBRLAmount(draftAmount);
     setEditing(false);
     if (!name || Number.isNaN(amount)) {
       startEditing();

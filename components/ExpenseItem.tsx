@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Expense } from "@/lib/types";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, parseBRLAmount } from "@/lib/format";
 
 interface ExpenseItemProps {
   expense: Expense;
@@ -31,7 +31,7 @@ export function ExpenseItem({ expense, onSaveEdit, onDeleteRequest }: ExpenseIte
 
   function commitEdit() {
     const description = draftDescription.trim();
-    const amount = Number(draftAmount.replace(",", "."));
+    const amount = parseBRLAmount(draftAmount);
     setEditing(false);
     if (!description || !(amount > 0)) {
       setDraftDescription(expense.description);

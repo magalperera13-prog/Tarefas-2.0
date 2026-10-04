@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { parseBRLAmount } from "@/lib/format";
 
 export function BalanceQuickAdd({
   onAdd,
@@ -11,7 +12,7 @@ export function BalanceQuickAdd({
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const parsedAmount = Number(amount.replace(",", "."));
+  const parsedAmount = parseBRLAmount(amount);
   const canSubmit = name.trim().length > 0 && !Number.isNaN(parsedAmount) && amount.trim() !== "" && !submitting;
 
   async function submit() {

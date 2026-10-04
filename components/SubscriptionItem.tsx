@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Subscription, SubscriptionPayment } from "@/lib/types";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, parseBRLAmount } from "@/lib/format";
 import { addOneMonthToDateString, formatDateBR } from "@/lib/date";
 
 interface SubscriptionEditChanges {
@@ -73,10 +73,10 @@ export function SubscriptionItem({
 
   function commitEdit() {
     const name = draftName.trim();
-    const amount = Number(draftAmount.replace(",", "."));
+    const amount = parseBRLAmount(draftAmount);
     const dueDay = draftDueDay.trim() || null;
     const observation = draftObservation.trim() || null;
-    const paymentAmount = Number(draftPaymentAmount.replace(",", "."));
+    const paymentAmount = parseBRLAmount(draftPaymentAmount);
     setEditing(false);
     if (!name || !(amount > 0)) {
       startEditing();
