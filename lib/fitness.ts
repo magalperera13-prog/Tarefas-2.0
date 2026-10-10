@@ -3,16 +3,17 @@ import { addDaysToDateString, daysBetween, weekdayIndex } from "@/lib/date";
 /**
  * Divisão semanal fixa da área Fitness. Chave = índice do dia da semana
  * (0 = domingo .. 6 = sábado, igual a Date.getDay()). Não existe "descanso":
- * todos os 7 dias têm um treino programado.
+ * todos os 7 dias têm um treino programado, e nenhum dia repete a mesma
+ * combinação de grupos musculares de outro dia da semana.
  */
 export const WORKOUT_SPLIT_BY_WEEKDAY: Record<number, string> = {
-  0: "Bíceps + Cardio + Perna", // domingo
   1: "Peito + Tríceps", // segunda
-  2: "Costas + Abdômen", // terça
-  3: "Bíceps + Cardio + Perna", // quarta
-  4: "Peito + Tríceps", // quinta
-  5: "Costas + Abdômen", // sexta
-  6: "Bíceps + Cardio + Perna", // sábado
+  2: "Costas + Bíceps", // terça
+  3: "Perna + Abdômen", // quarta
+  4: "Ombro + Cardio", // quinta
+  5: "Peito + Costas", // sexta
+  6: "Perna + Bíceps + Tríceps", // sábado
+  0: "Ombro + Abdômen + Cardio", // domingo
 };
 
 /** Meta semanal padrão — 7 treinos (todos os dias, sem descanso programado). */
