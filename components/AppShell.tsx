@@ -9,6 +9,7 @@ import {
   ExpensesIcon,
   SubscriptionsIcon,
   BalanceIcon,
+  PixIcon,
   FitnessIcon,
   CredentialsIcon,
   LogoutIcon,
@@ -18,9 +19,10 @@ const NAV_ITEMS = [
   { href: "/", label: "Hoje", Icon: TodayIcon },
   { href: "/history", label: "Histórico", Icon: HistoryIcon },
   { href: "/expenses", label: "Gastos", Icon: ExpensesIcon },
-  { href: "/subscriptions", label: "Assinaturas", Icon: SubscriptionsIcon },
+  { href: "/subscriptions", label: "Assinaturas", shortLabel: "Assin.", Icon: SubscriptionsIcon },
   { href: "/fitness", label: "Fitness", Icon: FitnessIcon },
   { href: "/balance", label: "Saldo", Icon: BalanceIcon },
+  { href: "/pix", label: "Pix", Icon: PixIcon },
   { href: "/credentials", label: "Senhas", Icon: CredentialsIcon },
 ];
 
@@ -119,17 +121,17 @@ export function AppShell({ userEmail, children }: { userEmail?: string | null; c
             paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))",
           }}
         >
-          {NAV_ITEMS.map(({ href, label, Icon }) => {
+          {NAV_ITEMS.map(({ href, label, shortLabel, Icon }) => {
             const active = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
-                className="flex flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition"
+                className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition"
                 style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
               >
                 <Icon className="h-5 w-5" />
-                {label}
+                {shortLabel ?? label}
               </Link>
             );
           })}

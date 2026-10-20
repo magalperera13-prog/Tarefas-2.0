@@ -21,6 +21,19 @@ export interface WorkoutLog {
   created_at: string;
 }
 
+export type PixKeyType = "cpf" | "cnpj" | "email" | "phone" | "random";
+
+export interface PixKey {
+  id: string;
+  user_id: string;
+  bank_name: string;
+  key_type: PixKeyType;
+  key_value: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DashboardStats {
   today: number;
   completedToday: number;

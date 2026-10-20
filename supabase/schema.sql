@@ -189,6 +189,26 @@ comment on table public.workout_logs is 'Um registro por dia em que o usuário t
 create unique index if not exists workout_logs_unique_day on public.workout_logs (user_id, workout_date);
 create index if not exists workout_logs_user_date_idx on public.workout_logs (user_id, workout_date desc);
 
+-- ----------------------------------------------------------------------------
+-- Chaves Pix — qual chave usar para receber em cada banco. Uma linha por chave
+-- (um banco pode ter várias). Chave Pix é um dado feito para ser compartilhado,
+-- então fica em texto normal (diferente das senhas, que são criptografadas).
+-- ----------------------------------------------------------------------------
+create table if not exists public.pix_keys (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  bank_name  text not null check (char_length(trim(bank_name)) > 0),
+  key_type   text not null default 'random' check (key_type in ('cpf', 'cnpj', 'email', 'phone', 'random')),
+  key_value  text not null check (char_length(trim(key_value)) > 0),
+  notes      text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+comment on table public.pix_keys is 'Chaves Pix do usuário, por banco, para saber qual chave informar para receber em cada um.';
+
+create index if not exists pix_keys_user_idx on public.pix_keys (user_id);
+
 -- Garante a coluna em bancos que ainda não a tinham (versões bem antigas do schema).
 alter table public.subscriptions add column if not exists renewal_type text not null default 'fixed_day';
 
@@ -294,6 +314,12 @@ create trigger balance_snapshots_set_updated_at
 drop trigger if exists credentials_set_updated_at on public.credentials;
 create trigger credentials_set_updated_at
   before update on public.credentials
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists pix_keys_set_updated_at on public.pix_keys;
+create trigger pix_keys_set_updated_at
+  before update on public.pix_keys
   for each row
   execute function public.set_updated_at();
 
@@ -482,6 +508,29 @@ create policy "workout_logs_update_own"
 drop policy if exists "workout_logs_delete_own" on public.workout_logs;
 create policy "workout_logs_delete_own"
   on public.workout_logs for delete
+  using (auth.uid() = user_id);
+
+alter table public.pix_keys enable row level security;
+
+drop policy if exists "pix_keys_select_own" on public.pix_keys;
+create policy "pix_keys_select_own"
+  on public.pix_keys for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "pix_keys_insert_own" on public.pix_keys;
+create policy "pix_keys_insert_own"
+  on public.pix_keys for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "pix_keys_update_own" on public.pix_keys;
+create policy "pix_keys_update_own"
+  on public.pix_keys for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "pix_keys_delete_own" on public.pix_keys;
+create policy "pix_keys_delete_own"
+  on public.pix_keys for delete
   using (auth.uid() = user_id);
 
 -- ============================================================================

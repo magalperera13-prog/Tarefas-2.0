@@ -71,6 +71,19 @@ export function FitnessIcon({ className }: { className?: string }) {
   );
 }
 
+export function PixIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <path
+        d="M10 2.8l3.1 3.1L10 9 6.9 5.9 10 2.8zM10 11l3.1 3.1L10 17.2 6.9 14.1 10 11zM2.8 10l3.1-3.1L9 10l-3.1 3.1L2.8 10zM11 10l3.1-3.1L17.2 10l-3.1 3.1L11 10z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none">
