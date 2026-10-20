@@ -27,9 +27,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() valida a assinatura do login localmente (sem ir ao servidor do
+  // Supabase a cada clique) e renova a sessão quando preciso. Se o projeto
+  // ainda usar a chave de assinatura antiga, ele cai sozinho em getUser().
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
+  const user = claims ? { email: claims.email as string | undefined } : null;
 
   const path = request.nextUrl.pathname;
   const isPublicRoute = PUBLIC_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));

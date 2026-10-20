@@ -11,13 +11,16 @@ export { isAuthorizedOwner };
  */
 export async function requireOwner() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() confere a assinatura do login localmente, sem uma ida ao
+  // Supabase por página. O acesso aos dados continua protegido por RLS no banco.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
 
-  if (!user) {
+  if (!claims) {
     redirect("/login");
   }
+
+  const user = { id: claims.sub, email: claims.email as string | undefined };
 
   if (!isAuthorizedOwner(user.email)) {
     await supabase.auth.signOut();
