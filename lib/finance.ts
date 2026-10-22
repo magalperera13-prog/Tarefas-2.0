@@ -58,3 +58,8 @@ export function moneyToField(n: number): string {
 export function profitColor(n: number): string {
   return n > 0 ? "var(--color-accent)" : n < 0 ? "var(--color-danger)" : "var(--color-text)";
 }
+
+/** Garante números válidos mesmo se o banco ainda estiver no formato antigo. */
+export function normalizeEntry(row: FinanceEntry): FinanceEntry {
+  return { ...row, revenue: Number(row.revenue) || 0, cost: Number(row.cost) || 0 };
+}

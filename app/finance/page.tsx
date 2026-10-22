@@ -2,6 +2,7 @@ import { requireOwner } from "@/lib/auth";
 import { AppShell } from "@/components/AppShell";
 import { FinanceView } from "@/components/FinanceView";
 import { currentYearMonth, monthRange, todayISODate } from "@/lib/date";
+import { normalizeEntry } from "@/lib/finance";
 import type { FinanceEntry } from "@/lib/types";
 
 export default async function FinancePage() {
@@ -18,7 +19,7 @@ export default async function FinancePage() {
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false });
 
-  const initialEntries = (monthRes.error ? [] : monthRes.data ?? []) as FinanceEntry[];
+  const initialEntries = ((monthRes.error ? [] : monthRes.data ?? []) as FinanceEntry[]).map(normalizeEntry);
 
   return (
     <AppShell userEmail={user.email}>

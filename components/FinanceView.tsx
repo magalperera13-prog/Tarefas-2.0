@@ -10,7 +10,7 @@ import { MonthNav } from "@/components/MonthNav";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { FinanceEntry } from "@/lib/types";
-import { profitColor, summarizeFinance, type FinanceEntryInput } from "@/lib/finance";
+import { normalizeEntry, profitColor, summarizeFinance, type FinanceEntryInput } from "@/lib/finance";
 import { formatBRL } from "@/lib/format";
 import { currentYearMonth, monthKeyFor, monthRange, monthYearLabel } from "@/lib/date";
 
@@ -61,7 +61,7 @@ export function FinanceView({ userId, initialEntries, todayISO }: FinanceViewPro
       showToast("Não foi possível carregar o mês", "danger");
       setEntries([]);
     } else {
-      setEntries((data ?? []) as FinanceEntry[]);
+      setEntries(((data ?? []) as FinanceEntry[]).map(normalizeEntry));
     }
     setLoading(false);
   }
@@ -76,7 +76,7 @@ export function FinanceView({ userId, initialEntries, todayISO }: FinanceViewPro
       showToast("Não foi possível adicionar a linha", "danger");
       return;
     }
-    const entry = data as FinanceEntry;
+    const entry = normalizeEntry(data as FinanceEntry);
     if (entry.entry_date.slice(0, 7) === viewedMonthKey) {
       setEntries((prev) => [...prev, entry]);
       showToast("✓ Linha adicionada");
