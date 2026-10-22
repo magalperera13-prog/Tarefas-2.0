@@ -84,6 +84,26 @@ export function PixIcon({ className }: { className?: string }) {
   );
 }
 
+export function FinanceIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <path d="M3 16.5h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M5 13.5V10M10 13.5V6.5M15 13.5V8.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M4.5 6.2l4-2.4 3 1.7 4-2.3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function MoreIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <circle cx="4.5" cy="10" r="1.4" fill="currentColor" />
+      <circle cx="10" cy="10" r="1.4" fill="currentColor" />
+      <circle cx="15.5" cy="10" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none">

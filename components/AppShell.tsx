@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,26 +11,44 @@ import {
   SubscriptionsIcon,
   BalanceIcon,
   PixIcon,
+  FinanceIcon,
   FitnessIcon,
+  MoreIcon,
   CredentialsIcon,
   LogoutIcon,
 } from "@/components/icons";
 
+// inBar: aparece direto na barra inferior do celular. As demais ficam no botão "Mais".
 const NAV_ITEMS = [
-  { href: "/", label: "Hoje", Icon: TodayIcon },
-  { href: "/history", label: "Histórico", Icon: HistoryIcon },
-  { href: "/expenses", label: "Gastos", Icon: ExpensesIcon },
-  { href: "/subscriptions", label: "Assinaturas", shortLabel: "Assin.", Icon: SubscriptionsIcon },
-  { href: "/fitness", label: "Fitness", Icon: FitnessIcon },
-  { href: "/balance", label: "Saldo", Icon: BalanceIcon },
-  { href: "/pix", label: "Pix", Icon: PixIcon },
-  { href: "/credentials", label: "Senhas", Icon: CredentialsIcon },
+  { href: "/", label: "Hoje", Icon: TodayIcon, inBar: true },
+  { href: "/history", label: "Histórico", Icon: HistoryIcon, inBar: true },
+  { href: "/expenses", label: "Gastos", Icon: ExpensesIcon, inBar: true },
+  { href: "/finance", label: "Financeiro", Icon: FinanceIcon, inBar: true },
+  { href: "/fitness", label: "Fitness", Icon: FitnessIcon, inBar: true },
+  { href: "/subscriptions", label: "Assinaturas", Icon: SubscriptionsIcon, inBar: false },
+  { href: "/balance", label: "Saldo", Icon: BalanceIcon, inBar: false },
+  { href: "/pix", label: "Pix", Icon: PixIcon, inBar: false },
+  { href: "/credentials", label: "Senhas", Icon: CredentialsIcon, inBar: false },
 ];
+
+const BAR_ITEMS = NAV_ITEMS.filter((i) => i.inBar);
+const MORE_ITEMS = NAV_ITEMS.filter((i) => !i.inBar);
 
 export function AppShell({ userEmail, children }: { userEmail?: string | null; children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreActive = MORE_ITEMS.some((i) => i.href === pathname);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -113,6 +132,14 @@ export function AppShell({ userEmail, children }: { userEmail?: string | null; c
 
         <main className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6 sm:pt-10 lg:pb-10">{children}</main>
 
+        {moreOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
         <nav
           className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t px-1 pt-1.5 lg:hidden"
           style={{
@@ -121,20 +148,59 @@ export function AppShell({ userEmail, children }: { userEmail?: string | null; c
             paddingBottom: "max(0.375rem, env(safe-area-inset-bottom))",
           }}
         >
-          {NAV_ITEMS.map(({ href, label, shortLabel, Icon }) => {
+          {moreOpen && (
+            <div
+              className="absolute inset-x-0 bottom-full grid grid-cols-4 gap-1 rounded-t-2xl border-t px-3 pb-3 pt-3"
+              style={{ borderColor: "var(--color-border)", background: "var(--color-bg-elevated)" }}
+            >
+              {MORE_ITEMS.map(({ href, label, Icon }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreOpen(false)}
+                    className="flex min-w-0 flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-medium transition"
+                    style={{
+                      color: active ? "var(--color-accent)" : "var(--color-text-muted)",
+                      background: active ? "var(--color-accent-soft)" : "transparent",
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="max-w-full truncate">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {BAR_ITEMS.map(({ href, label, Icon }) => {
             const active = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
+                onClick={() => setMoreOpen(false)}
                 className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition"
                 style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
               >
                 <Icon className="h-5 w-5" />
-                {shortLabel ?? label}
+                {label}
               </Link>
             );
           })}
+
+          <button
+            type="button"
+            onClick={() => setMoreOpen((open) => !open)}
+            aria-expanded={moreOpen}
+            aria-label="Mais abas"
+            className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1 text-[10px] font-medium transition"
+            style={{ color: moreActive || moreOpen ? "var(--color-accent)" : "var(--color-text-muted)" }}
+          >
+            <MoreIcon className="h-5 w-5" />
+            Mais
+          </button>
         </nav>
       </div>
     </div>

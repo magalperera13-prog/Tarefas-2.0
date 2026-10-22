@@ -209,6 +209,27 @@ comment on table public.pix_keys is 'Chaves Pix do usuário, por banco, para sab
 
 create index if not exists pix_keys_user_idx on public.pix_keys (user_id);
 
+-- ----------------------------------------------------------------------------
+-- Financeiro — planilha de ganhos e dos gastos feitos para ganhar o dinheiro.
+-- Cada linha é um ganho ("income") ou um gasto ("cost"), opcionalmente ligada a
+-- um projeto/negócio, para calcular o lucro por mês e por projeto.
+-- ----------------------------------------------------------------------------
+create table if not exists public.finance_entries (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  entry_date  date not null,
+  kind        text not null check (kind in ('income', 'cost')),
+  amount      numeric(14, 2) not null check (amount > 0),
+  description text not null check (char_length(trim(description)) > 0),
+  project     text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+comment on table public.finance_entries is 'Ganhos e gastos para ganhar dinheiro, por data e projeto, para calcular lucro.';
+
+create index if not exists finance_entries_user_date_idx on public.finance_entries (user_id, entry_date desc);
+
 -- Garante a coluna em bancos que ainda não a tinham (versões bem antigas do schema).
 alter table public.subscriptions add column if not exists renewal_type text not null default 'fixed_day';
 
@@ -320,6 +341,12 @@ create trigger credentials_set_updated_at
 drop trigger if exists pix_keys_set_updated_at on public.pix_keys;
 create trigger pix_keys_set_updated_at
   before update on public.pix_keys
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists finance_entries_set_updated_at on public.finance_entries;
+create trigger finance_entries_set_updated_at
+  before update on public.finance_entries
   for each row
   execute function public.set_updated_at();
 
@@ -531,6 +558,29 @@ create policy "pix_keys_update_own"
 drop policy if exists "pix_keys_delete_own" on public.pix_keys;
 create policy "pix_keys_delete_own"
   on public.pix_keys for delete
+  using (auth.uid() = user_id);
+
+alter table public.finance_entries enable row level security;
+
+drop policy if exists "finance_entries_select_own" on public.finance_entries;
+create policy "finance_entries_select_own"
+  on public.finance_entries for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "finance_entries_insert_own" on public.finance_entries;
+create policy "finance_entries_insert_own"
+  on public.finance_entries for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "finance_entries_update_own" on public.finance_entries;
+create policy "finance_entries_update_own"
+  on public.finance_entries for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "finance_entries_delete_own" on public.finance_entries;
+create policy "finance_entries_delete_own"
+  on public.finance_entries for delete
   using (auth.uid() = user_id);
 
 -- ============================================================================
