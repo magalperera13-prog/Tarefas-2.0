@@ -210,23 +210,38 @@ comment on table public.pix_keys is 'Chaves Pix do usuário, por banco, para sab
 create index if not exists pix_keys_user_idx on public.pix_keys (user_id);
 
 -- ----------------------------------------------------------------------------
--- Financeiro — planilha de ganhos e dos gastos feitos para ganhar o dinheiro.
--- Cada linha é um ganho ("income") ou um gasto ("cost"), opcionalmente ligada a
--- um projeto/negócio, para calcular o lucro por mês e por projeto.
+-- Financeiro — planilha de faturamento, gastos e lucro.
+-- Cada linha tem um faturamento (revenue) e os gastos feitos para ganhá-lo
+-- (cost). O lucro (revenue - cost) é calculado na tela.
 -- ----------------------------------------------------------------------------
 create table if not exists public.finance_entries (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references auth.users (id) on delete cascade,
   entry_date  date not null,
-  kind        text not null check (kind in ('income', 'cost')),
-  amount      numeric(14, 2) not null check (amount > 0),
   description text not null check (char_length(trim(description)) > 0),
+  revenue     numeric(14, 2) not null default 0 check (revenue >= 0),
+  cost        numeric(14, 2) not null default 0 check (cost >= 0),
   project     text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 
-comment on table public.finance_entries is 'Ganhos e gastos para ganhar dinheiro, por data e projeto, para calcular lucro.';
+-- Versão anterior da aba: um lançamento era "ganho" OU "gasto" (kind + amount).
+-- Se esses campos existirem, converte para faturamento/gastos e os esvazia.
+alter table public.finance_entries add column if not exists revenue numeric(14, 2) not null default 0;
+alter table public.finance_entries add column if not exists cost numeric(14, 2) not null default 0;
+alter table public.finance_entries add column if not exists kind text;
+alter table public.finance_entries add column if not exists amount numeric(14, 2);
+alter table public.finance_entries alter column kind drop not null;
+alter table public.finance_entries alter column amount drop not null;
+update public.finance_entries
+  set revenue = case when kind = 'income' then amount else 0 end,
+      cost    = case when kind = 'cost'   then amount else 0 end,
+      kind = null,
+      amount = null
+  where amount is not null;
+
+comment on table public.finance_entries is 'Faturamento e gastos por data; o lucro é faturamento - gastos.';
 
 create index if not exists finance_entries_user_date_idx on public.finance_entries (user_id, entry_date desc);
 

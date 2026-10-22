@@ -1,87 +1,60 @@
-import type { FinanceEntry, FinanceKind } from "@/lib/types";
+import type { FinanceEntry } from "@/lib/types";
 
-export const NO_PROJECT_LABEL = "Sem projeto";
-
-/** Campos editáveis de um lançamento (usado ao adicionar e ao editar). */
+/** Campos editáveis de uma linha (usado ao adicionar e ao editar). */
 export interface FinanceEntryInput {
-  kind: FinanceKind;
   entry_date: string;
   description: string;
-  project: string | null;
-  amount: number;
-}
-
-export interface ProjectSummary {
-  project: string;
-  income: number;
+  revenue: number;
   cost: number;
-  profit: number;
 }
 
 export interface FinanceSummary {
-  income: number;
+  revenue: number;
   cost: number;
   profit: number;
-  /** Lucro / ganho, em %. null quando não houve ganho no período. */
+  /** Lucro / faturamento, em %. null quando não houve faturamento. */
   margin: number | null;
-  byProject: ProjectSummary[];
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Normaliza o nome do projeto para agrupar ("vibe force" = "Vibe Force "). */
-export function projectKey(project: string | null | undefined): string {
-  return (project ?? "").trim().toLowerCase();
+/** Lucro de uma linha: faturamento - gastos. */
+export function entryProfit(e: { revenue: number; cost: number }): number {
+  return round2(e.revenue - e.cost);
 }
 
-export function summarizeFinance(entries: FinanceEntry[]): FinanceSummary {
-  let income = 0;
+export function summarizeFinance(entries: Pick<FinanceEntry, "revenue" | "cost">[]): FinanceSummary {
+  let revenue = 0;
   let cost = 0;
-  const map = new Map<string, { label: string; income: number; cost: number }>();
-
   for (const e of entries) {
-    const key = projectKey(e.project);
-    const row = map.get(key) ?? { label: key ? (e.project ?? "").trim() : NO_PROJECT_LABEL, income: 0, cost: 0 };
-    if (e.kind === "income") {
-      income += e.amount;
-      row.income += e.amount;
-    } else {
-      cost += e.amount;
-      row.cost += e.amount;
-    }
-    map.set(key, row);
+    revenue += Number(e.revenue) || 0;
+    cost += Number(e.cost) || 0;
   }
-
-  const byProject = Array.from(map.values())
-    .map((r) => ({
-      project: r.label,
-      income: round2(r.income),
-      cost: round2(r.cost),
-      profit: round2(r.income - r.cost),
-    }))
-    // Projetos mais lucrativos primeiro; "Sem projeto" sempre por último.
-    .sort((a, b) => {
-      if (a.project === NO_PROJECT_LABEL) return 1;
-      if (b.project === NO_PROJECT_LABEL) return -1;
-      return b.profit - a.profit;
-    });
-
-  const profit = round2(income - cost);
+  const profit = round2(revenue - cost);
   return {
-    income: round2(income),
+    revenue: round2(revenue),
     cost: round2(cost),
     profit,
-    margin: income > 0 ? (profit / income) * 100 : null,
-    byProject,
+    margin: revenue > 0 ? (profit / revenue) * 100 : null,
   };
 }
 
-/** Nomes de projeto distintos já usados (para sugerir ao digitar), em ordem alfabética. */
-export function distinctProjects(entries: { project: string | null }[]): string[] {
-  const seen = new Map<string, string>();
-  for (const e of entries) {
-    const key = projectKey(e.project);
-    if (key && !seen.has(key)) seen.set(key, (e.project ?? "").trim());
-  }
-  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b, "pt-BR"));
+/**
+ * Lê um campo de dinheiro digitado ("1.890,50", "620", vazio).
+ * Vazio vale 0; texto inválido ou negativo devolve null.
+ */
+export function parseMoneyField(raw: string): number | null {
+  const t = raw.trim();
+  if (t === "") return 0;
+  const n = Number(t.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/** Valor para preencher um campo de edição ("1890,5"; 0 vira vazio). */
+export function moneyToField(n: number): string {
+  return n ? String(n).replace(".", ",") : "";
+}
+
+export function profitColor(n: number): string {
+  return n > 0 ? "var(--color-accent)" : n < 0 ? "var(--color-danger)" : "var(--color-text)";
 }

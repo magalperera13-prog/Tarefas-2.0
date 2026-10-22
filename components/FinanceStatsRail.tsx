@@ -1,16 +1,14 @@
 import { formatBRL } from "@/lib/format";
-import type { FinanceSummary } from "@/lib/finance";
+import { profitColor, type FinanceSummary } from "@/lib/finance";
 
 export function FinanceStatsRail({ summary }: { summary: FinanceSummary }) {
-  const profitColor =
-    summary.profit > 0 ? "var(--color-accent)" : summary.profit < 0 ? "var(--color-danger)" : "var(--color-text)";
   const margin = summary.margin === null ? "—" : `${summary.margin.toFixed(1).replace(".", ",")}%`;
 
   const items = [
-    { label: "Ganhei", value: formatBRL(summary.income), color: "var(--color-accent)" },
-    { label: "Gastei para ganhar", value: formatBRL(summary.cost), color: "var(--color-danger)" },
-    { label: "Lucro", value: formatBRL(summary.profit), color: profitColor },
-    { label: "Margem de lucro", value: margin, color: profitColor },
+    { label: "Faturamento", value: formatBRL(summary.revenue), color: "var(--color-text)" },
+    { label: "Gastos", value: formatBRL(summary.cost), color: "var(--color-danger)" },
+    { label: "Lucro", value: formatBRL(summary.profit), color: profitColor(summary.profit) },
+    { label: "Margem de lucro", value: margin, color: profitColor(summary.profit) },
   ];
 
   return (
