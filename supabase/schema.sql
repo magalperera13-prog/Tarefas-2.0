@@ -210,6 +210,26 @@ comment on table public.pix_keys is 'Chaves Pix do usuário, por banco, para sab
 create index if not exists pix_keys_user_idx on public.pix_keys (user_id);
 
 -- ----------------------------------------------------------------------------
+-- Compras — lista do que Mike precisa/quer comprar, classificada por faixa de
+-- preço: barato (cheap), mais ou menos (medium) e caro (expensive).
+-- ----------------------------------------------------------------------------
+create table if not exists public.wishlist_items (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  title      text not null check (char_length(trim(title)) > 0),
+  price      numeric(14, 2) check (price is null or price >= 0),
+  tier       text not null default 'medium' check (tier in ('cheap', 'medium', 'expensive')),
+  is_bought  boolean not null default false,
+  bought_at  timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+comment on table public.wishlist_items is 'Lista de compras planejadas, por faixa (barato / mais ou menos / caro), com preço estimado opcional.';
+
+create index if not exists wishlist_items_user_idx on public.wishlist_items (user_id, created_at);
+
+-- ----------------------------------------------------------------------------
 -- Financeiro — planilha de faturamento, gastos e lucro.
 -- Cada linha tem um faturamento (revenue) e os gastos feitos para ganhá-lo
 -- (cost). O lucro (revenue - cost) é calculado na tela.
@@ -356,6 +376,12 @@ create trigger credentials_set_updated_at
 drop trigger if exists pix_keys_set_updated_at on public.pix_keys;
 create trigger pix_keys_set_updated_at
   before update on public.pix_keys
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists wishlist_items_set_updated_at on public.wishlist_items;
+create trigger wishlist_items_set_updated_at
+  before update on public.wishlist_items
   for each row
   execute function public.set_updated_at();
 
@@ -573,6 +599,29 @@ create policy "pix_keys_update_own"
 drop policy if exists "pix_keys_delete_own" on public.pix_keys;
 create policy "pix_keys_delete_own"
   on public.pix_keys for delete
+  using (auth.uid() = user_id);
+
+alter table public.wishlist_items enable row level security;
+
+drop policy if exists "wishlist_items_select_own" on public.wishlist_items;
+create policy "wishlist_items_select_own"
+  on public.wishlist_items for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "wishlist_items_insert_own" on public.wishlist_items;
+create policy "wishlist_items_insert_own"
+  on public.wishlist_items for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "wishlist_items_update_own" on public.wishlist_items;
+create policy "wishlist_items_update_own"
+  on public.wishlist_items for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "wishlist_items_delete_own" on public.wishlist_items;
+create policy "wishlist_items_delete_own"
+  on public.wishlist_items for delete
   using (auth.uid() = user_id);
 
 alter table public.finance_entries enable row level security;

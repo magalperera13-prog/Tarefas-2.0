@@ -45,6 +45,20 @@ export interface FinanceEntry {
   updated_at: string;
 }
 
+export type WishlistTier = "cheap" | "medium" | "expensive";
+
+export interface WishlistItem {
+  id: string;
+  user_id: string;
+  title: string;
+  price: number | null;
+  tier: WishlistTier;
+  is_bought: boolean;
+  bought_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DashboardStats {
   today: number;
   completedToday: number;

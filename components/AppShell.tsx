@@ -12,6 +12,7 @@ import {
   BalanceIcon,
   PixIcon,
   FinanceIcon,
+  WishlistIcon,
   FitnessIcon,
   MoreIcon,
   CredentialsIcon,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/fitness", label: "Fitness", Icon: FitnessIcon, inBar: true },
   { href: "/subscriptions", label: "Assinaturas", Icon: SubscriptionsIcon, inBar: false },
   { href: "/balance", label: "Saldo", Icon: BalanceIcon, inBar: false },
+  { href: "/wishlist", label: "Compras", Icon: WishlistIcon, inBar: false },
   { href: "/pix", label: "Pix", Icon: PixIcon, inBar: false },
   { href: "/credentials", label: "Senhas", Icon: CredentialsIcon, inBar: false },
 ];

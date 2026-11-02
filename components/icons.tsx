@@ -94,6 +94,16 @@ export function FinanceIcon({ className }: { className?: string }) {
   );
 }
 
+export function WishlistIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" className={className} fill="none">
+      <path d="M2.5 3.5h2l1.6 8.2a1 1 0 001 .8h7a1 1 0 001-.8l1.1-5.7H5.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="8" cy="16" r="1.2" fill="currentColor" />
+      <circle cx="14" cy="16" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function MoreIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" className={className} fill="none">
