@@ -11,9 +11,11 @@ interface WishlistItemRowProps {
   onToggleBought: (item: WishlistItem) => void;
   onSaveEdit: (item: WishlistItem, changes: WishlistInput) => void;
   onDeleteRequest: (item: WishlistItem) => void;
+  /** Mostra a etiqueta da faixa (usado no bloco de comprados). */
+  showTier?: boolean;
 }
 
-export function WishlistItemRow({ item, onToggleBought, onSaveEdit, onDeleteRequest }: WishlistItemRowProps) {
+export function WishlistItemRow({ item, onToggleBought, onSaveEdit, onDeleteRequest, showTier = false }: WishlistItemRowProps) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [price, setPrice] = useState(priceToField(item.price));
@@ -139,9 +141,18 @@ export function WishlistItemRow({ item, onToggleBought, onSaveEdit, onDeleteRequ
         <span className="line-clamp-2 block">{item.title}</span>
       </button>
 
+      {showTier && (
+        <span
+          className="shrink-0 rounded-full border px-2 py-0.5 text-[10.5px] font-semibold"
+          style={{ borderColor: info.color, background: info.soft, color: info.color }}
+        >
+          {info.label}
+        </span>
+      )}
+
       <span
         className="shrink-0 font-[family-name:var(--font-mono)] text-[13px] tabular"
-        style={{ color: item.is_bought ? "var(--color-text-faint)" : item.price === null ? "var(--color-text-faint)" : "var(--color-text)" }}
+        style={{ color: item.price === null || item.is_bought ? "var(--color-text-faint)" : "var(--color-text)" }}
       >
         {item.price === null ? "—" : formatBRL(item.price)}
       </span>

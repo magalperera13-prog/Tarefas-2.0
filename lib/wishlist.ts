@@ -41,7 +41,17 @@ export interface TierSummary {
   withoutPrice: number;
 }
 
-export function summarizeWishlist(items: WishlistItem[]): { tiers: TierSummary[]; total: number; pendingCount: number } {
+export function summarizeWishlist(items: WishlistItem[]): {
+  tiers: TierSummary[];
+  total: number;
+  pendingCount: number;
+  /** Itens já comprados (de todas as faixas), os mais recentes primeiro. */
+  bought: WishlistItem[];
+  boughtTotal: number;
+} {
+  const bought = items
+    .filter((i) => i.is_bought)
+    .sort((a, b) => ((a.bought_at ?? a.created_at) < (b.bought_at ?? b.created_at) ? 1 : -1));
   const tiers = WISHLIST_TIERS.map((t) => {
     const mine = items
       .filter((i) => i.tier === t.value)
@@ -60,6 +70,8 @@ export function summarizeWishlist(items: WishlistItem[]): { tiers: TierSummary[]
     tiers,
     total: round2(tiers.reduce((sum, t) => sum + t.total, 0)),
     pendingCount: tiers.reduce((sum, t) => sum + t.pending.length, 0),
+    bought,
+    boughtTotal: round2(bought.reduce((sum, i) => sum + (Number(i.price) || 0), 0)),
   };
 }
 

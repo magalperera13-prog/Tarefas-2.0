@@ -50,7 +50,7 @@ export function WishlistView({ userId, initialItems }: WishlistViewProps) {
       showToast("Não foi possível atualizar o item", "danger");
       return;
     }
-    showToast(changes.is_bought ? "✓ Marcado como comprado" : "Voltou para a lista");
+    showToast(changes.is_bought ? "✓ Movido para Comprados" : "Voltou para a lista");
   }
 
   async function handleSaveEdit(item: WishlistItem, changes: WishlistInput) {
@@ -119,7 +119,7 @@ export function WishlistView({ userId, initialItems }: WishlistViewProps) {
       <div className="space-y-6">
         {WISHLIST_TIERS.map((info) => {
           const t = summary.tiers.find((x) => x.tier === info.value)!;
-          const rows = [...t.pending, ...t.bought];
+          const rows = t.pending;
           return (
             <section key={info.value} aria-label={info.label}>
               <div className="mb-2.5 flex items-baseline justify-between gap-3">
@@ -162,6 +162,45 @@ export function WishlistView({ userId, initialItems }: WishlistViewProps) {
           );
         })}
       </div>
+
+      <section aria-label="Comprados">
+        <div className="mb-2.5 flex items-baseline justify-between gap-3">
+          <h2
+            className="font-[family-name:var(--font-display)] text-sm font-semibold tracking-wide"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            COMPRADOS
+          </h2>
+          <span className="text-xs tabular" style={{ color: "var(--color-text-muted)" }}>
+            {summary.bought.length > 0 ? `${formatBRL(summary.boughtTotal)} · ${summary.bought.length}` : ""}
+          </span>
+        </div>
+        {summary.bought.length === 0 ? (
+          <div
+            className="rounded-xl border border-dashed px-4 py-5 text-center text-[13px]"
+            style={{ borderColor: "var(--color-border)", color: "var(--color-text-faint)" }}
+          >
+            Nada comprado ainda. Marque o círculo de um item para ele vir para cá.
+          </div>
+        ) : (
+          <div
+            className="divide-y overflow-hidden rounded-xl border"
+            style={{ borderColor: "var(--color-border-soft)", background: "var(--color-bg-elevated)" }}
+          >
+            {summary.bought.map((item) => (
+              <div key={item.id} style={{ borderColor: "var(--color-border-soft)" }}>
+                <WishlistItemRow
+                  item={item}
+                  showTier
+                  onToggleBought={handleToggleBought}
+                  onSaveEdit={handleSaveEdit}
+                  onDeleteRequest={setPendingDelete}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <ConfirmDialog
         open={!!pendingDelete}
