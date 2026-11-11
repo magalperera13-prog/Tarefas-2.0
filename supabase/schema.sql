@@ -52,6 +52,11 @@ create table if not exists public.expenses (
 
 comment on table public.expenses is 'Gastos pessoais do usuário, agrupados por dia (America/Sao_Paulo).';
 
+-- Categoria do gasto (opcional; pode ser escolhida ou trocada depois de adicionar).
+alter table public.expenses
+  add column if not exists category text
+  check (category is null or category in ('filha', 'alimentacao', 'lazer', 'casa', 'assinatura', 'vaidade'));
+
 -- ----------------------------------------------------------------------------
 -- Tabela de assinaturas
 -- ----------------------------------------------------------------------------

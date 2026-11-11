@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { parseBRLAmount } from "@/lib/format";
+import type { ExpenseCategory } from "@/lib/types";
+import { ExpenseCategoryPicker } from "@/components/ExpenseCategoryPicker";
 
 export function ExpenseQuickAdd({
   onAdd,
 }: {
-  onAdd: (description: string, amount: number) => Promise<void> | void;
+  onAdd: (description: string, amount: number, category: ExpenseCategory | null) => Promise<void> | void;
 }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState<ExpenseCategory | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const parsedAmount = parseBRLAmount(amount);
@@ -23,7 +26,7 @@ export function ExpenseQuickAdd({
     setDescription("");
     setAmount("");
     try {
-      await onAdd(desc, value);
+      await onAdd(desc, value, category);
     } finally {
       setSubmitting(false);
     }
@@ -64,6 +67,7 @@ export function ExpenseQuickAdd({
             aria-label="Valor gasto"
           />
         </div>
+        <ExpenseCategoryPicker value={category} onChange={setCategory} className="shrink-0 py-1.5" />
         <button
           onClick={submit}
           disabled={!canSubmit}

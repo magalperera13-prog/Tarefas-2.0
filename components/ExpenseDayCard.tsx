@@ -1,16 +1,17 @@
 import { formatDateBR, weekdayLabel } from "@/lib/date";
 import { formatBRL } from "@/lib/format";
 import { ExpenseItem } from "@/components/ExpenseItem";
-import type { Expense } from "@/lib/types";
+import type { Expense, ExpenseCategory } from "@/lib/types";
 
 interface ExpenseDayCardProps {
   dateISO: string;
   expenses: Expense[];
   onSaveEdit: (expense: Expense, changes: { description: string; amount: number }) => void;
+  onChangeCategory: (expense: Expense, category: ExpenseCategory | null) => void;
   onDeleteRequest: (expense: Expense) => void;
 }
 
-export function ExpenseDayCard({ dateISO, expenses, onSaveEdit, onDeleteRequest }: ExpenseDayCardProps) {
+export function ExpenseDayCard({ dateISO, expenses, onSaveEdit, onChangeCategory, onDeleteRequest }: ExpenseDayCardProps) {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
@@ -30,7 +31,13 @@ export function ExpenseDayCard({ dateISO, expenses, onSaveEdit, onDeleteRequest 
       </div>
       <div className="space-y-2">
         {expenses.map((expense) => (
-          <ExpenseItem key={expense.id} expense={expense} onSaveEdit={onSaveEdit} onDeleteRequest={onDeleteRequest} />
+          <ExpenseItem
+            key={expense.id}
+            expense={expense}
+            onSaveEdit={onSaveEdit}
+            onChangeCategory={onChangeCategory}
+            onDeleteRequest={onDeleteRequest}
+          />
         ))}
       </div>
     </div>

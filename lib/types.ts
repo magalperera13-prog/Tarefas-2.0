@@ -66,12 +66,15 @@ export interface DashboardStats {
   completedThisMonth: number;
 }
 
+export type ExpenseCategory = "filha" | "alimentacao" | "lazer" | "casa" | "assinatura" | "vaidade";
+
 export interface Expense {
   id: string;
   user_id: string;
   description: string;
   amount: number;
   expense_date: string; // yyyy-MM-dd, no fuso America/Sao_Paulo
+  category: ExpenseCategory | null;
   created_at: string;
   updated_at: string;
 }

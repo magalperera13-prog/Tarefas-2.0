@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Expense } from "@/lib/types";
+import type { Expense, ExpenseCategory } from "@/lib/types";
+import { ExpenseCategoryPicker } from "@/components/ExpenseCategoryPicker";
 import { formatBRL, parseBRLAmount } from "@/lib/format";
 
 interface ExpenseItemProps {
   expense: Expense;
   onSaveEdit: (expense: Expense, changes: { description: string; amount: number }) => void;
+  onChangeCategory: (expense: Expense, category: ExpenseCategory | null) => void;
   onDeleteRequest: (expense: Expense) => void;
 }
 
-export function ExpenseItem({ expense, onSaveEdit, onDeleteRequest }: ExpenseItemProps) {
+export function ExpenseItem({ expense, onSaveEdit, onChangeCategory, onDeleteRequest }: ExpenseItemProps) {
   const [editing, setEditing] = useState(false);
   const [draftDescription, setDraftDescription] = useState(expense.description);
   const [draftAmount, setDraftAmount] = useState(String(expense.amount).replace(".", ","));
@@ -106,6 +108,11 @@ export function ExpenseItem({ expense, onSaveEdit, onDeleteRequest }: ExpenseIte
       >
         {expense.description}
       </button>
+      <ExpenseCategoryPicker
+        value={expense.category ?? null}
+        onChange={(category) => onChangeCategory(expense, category)}
+        className="max-w-[8.5rem] shrink-0 truncate"
+      />
       <span className="font-[family-name:var(--font-mono)] text-[13px] tabular" style={{ color: "var(--color-danger)" }}>
         {formatBRL(expense.amount)}
       </span>

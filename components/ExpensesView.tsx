@@ -9,7 +9,8 @@ import { ExpenseDayCard } from "@/components/ExpenseDayCard";
 import { MonthNav } from "@/components/MonthNav";
 import { EmptyState } from "@/components/EmptyState";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import type { Expense } from "@/lib/types";
+import type { Expense, ExpenseCategory } from "@/lib/types";
+import { summarizeByCategory } from "@/lib/expense-categories";
 import { currentYearMonth, daysElapsedInMonth, monthRange, monthYearLabel, monthYearShort, todayISODate } from "@/lib/date";
 
 interface ExpensesViewProps {
@@ -41,6 +42,8 @@ export function ExpensesView({ userId, initialExpenses, initialTotalToday }: Exp
     const days = daysElapsedInMonth(year, month) || 1;
     return monthTotal / days;
   }, [monthTotal, year, month]);
+
+  const categoryTotals = useMemo(() => summarizeByCategory(expenses), [expenses]);
 
   const isFirstRender = useRef(true);
 
@@ -88,10 +91,10 @@ export function ExpensesView({ userId, initialExpenses, initialTotalToday }: Exp
     setTotalToday((prev) => prev + deltaAmount);
   }
 
-  async function handleAdd(description: string, amount: number) {
+  async function handleAdd(description: string, amount: number, category: ExpenseCategory | null) {
     const { data, error } = await supabase
       .from("expenses")
-      .insert({ description, amount, user_id: userId, expense_date: todayISO })
+      .insert({ description, amount, category, user_id: userId, expense_date: todayISO })
       .select()
       .single();
 
@@ -116,6 +119,16 @@ export function ExpensesView({ userId, initialExpenses, initialTotalToday }: Exp
       setExpenses((prev) => prev.map((e) => (e.id === expense.id ? expense : e)));
       adjustTotalToday(expense.amount - changes.amount, expense.expense_date);
       showToast("Não foi possível salvar o gasto", "danger");
+    }
+  }
+
+  async function handleChangeCategory(expense: Expense, category: ExpenseCategory | null) {
+    if ((expense.category ?? null) === category) return;
+    setExpenses((prev) => prev.map((e) => (e.id === expense.id ? { ...e, category } : e)));
+    const { error } = await supabase.from("expenses").update({ category }).eq("id", expense.id);
+    if (error) {
+      setExpenses((prev) => prev.map((e) => (e.id === expense.id ? expense : e)));
+      showToast("Não foi possível salvar a categoria", "danger");
     }
   }
 
@@ -151,6 +164,7 @@ export function ExpensesView({ userId, initialExpenses, initialTotalToday }: Exp
       <ExpenseStatsRail
         stats={{ totalToday, totalThisMonth: monthTotal, averagePerDay: monthAverage }}
         monthLabel={monthYearShort(year, month)}
+        categories={categoryTotals}
       />
       <ExpenseQuickAdd onAdd={handleAdd} />
       <MonthNav year={year} month={month} onChange={(y, m) => { setYear(y); setMonth(m); }} />
@@ -171,6 +185,7 @@ export function ExpensesView({ userId, initialExpenses, initialTotalToday }: Exp
               dateISO={dateISO}
               expenses={dayExpenses}
               onSaveEdit={handleSaveEdit}
+              onChangeCategory={handleChangeCategory}
               onDeleteRequest={setPendingDelete}
             />
           ))}
