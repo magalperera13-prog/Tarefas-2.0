@@ -5,11 +5,7 @@ import { SubscriptionsDueAlert } from "@/components/SubscriptionsDueAlert";
 import { VibeforceQueueAlert } from "@/components/VibeforceQueueAlert";
 import { todayISODate, monthRangeUTC, currentYearMonth } from "@/lib/date";
 import { getDueSoonSubscriptions } from "@/lib/subscriptions";
-import {
-  VIBEFORCE_TASK_TITLE,
-  isVibeforceQueueLow,
-  vibeforceTaskDescription,
-} from "@/lib/vibeforce";
+import { withElapsedDays } from "@/lib/vibeforce";
 import type { Subscription, SubscriptionPayment, Task, VibeforceQueueStatus } from "@/lib/types";
 
 export default async function HomePage() {
@@ -46,27 +42,9 @@ export default async function HomePage() {
   const initialTasks = (todayTasksRes.data ?? []) as Task[];
 
   // Fila de vídeos da Vibe Force (sincronizada pelo painel Publicador).
-  const queueStatus = (queueRes.error ? null : queueRes.data) as VibeforceQueueStatus | null;
+  const rawQueueStatus = (queueRes.error ? null : queueRes.data) as VibeforceQueueStatus | null;
+  const queueStatus = rawQueueStatus ? withElapsedDays(rawQueueStatus, todayISO) : null;
 
-  // Tarefa automática: quando faltam poucos dias, cria UMA tarefa pendente para hoje.
-  // initialTasks já traz todas as tarefas de hoje (concluídas ou não), então se uma com esse
-  // título exato existir, não criamos outra. O índice único do banco cobre o caso de duas
-  // telas abrindo ao mesmo tempo (a segunda inserção é recusada e simplesmente ignorada).
-  if (isVibeforceQueueLow(queueStatus) && !initialTasks.some((t) => t.title === VIBEFORCE_TASK_TITLE)) {
-    const { data: created } = await supabase
-      .from("tasks")
-      .insert({
-        user_id: user.id,
-        title: VIBEFORCE_TASK_TITLE,
-        description: vibeforceTaskDescription(queueStatus),
-        task_date: todayISO,
-        status: "pending",
-        is_blocked: false,
-      })
-      .select()
-      .single();
-    if (created) initialTasks.unshift(created as Task);
-  }
   const initialOverdueTasks = (overdueTasksRes.data ?? []) as Task[];
   const initialCompletedThisMonth = completedThisMonthRes.count ?? 0;
   const ownerName = process.env.NEXT_PUBLIC_OWNER_NAME || "Magal";

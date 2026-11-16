@@ -259,11 +259,8 @@ create policy "vibeforce_queue_status_select_own"
   on public.vibeforce_queue_status for select
   using (auth.uid() = user_id);
 
--- Garante no banco que a tarefa automática "VIDEOS VIBE FORCE ACABANDO" nunca
--- seja duplicada no mesmo dia, mesmo se duas telas Hoje abrirem ao mesmo tempo.
-create unique index if not exists tasks_vibeforce_queue_alert_unique
-  on public.tasks (user_id, task_date)
-  where title = 'VIDEOS VIBE FORCE ACABANDO';
+-- (A tarefa automática foi removida; este índice, criado numa versão anterior, não é mais usado.)
+drop index if exists public.tasks_vibeforce_queue_alert_unique;
 
 -- ----------------------------------------------------------------------------
 -- Financeiro — planilha de faturamento, gastos e lucro.
