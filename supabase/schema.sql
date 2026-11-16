@@ -235,6 +235,37 @@ comment on table public.wishlist_items is 'Lista de compras planejadas, por faix
 create index if not exists wishlist_items_user_idx on public.wishlist_items (user_id, created_at);
 
 -- ----------------------------------------------------------------------------
+-- Fila de vídeos da Vibe Force — status sincronizado pelo painel VibeForce-
+-- Publicador (roda local no PC do Mike). Quem escreve aqui é um script externo
+-- com a service_role key (ignora RLS), por isso só existe policy de leitura.
+-- ----------------------------------------------------------------------------
+create table if not exists public.vibeforce_queue_status (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  dias_restantes  integer not null,
+  videos_prontos  integer not null,
+  cadencia_dia    integer not null,
+  atualizado_em   timestamptz not null default now()
+);
+
+comment on table public.vibeforce_queue_status is 'Status da fila de vídeos da Vibe Force, sincronizado pelo painel Publicador (via service_role key, por isso não precisa de policy de insert para ele).';
+
+create unique index if not exists vibeforce_queue_status_unique_user on public.vibeforce_queue_status (user_id);
+
+alter table public.vibeforce_queue_status enable row level security;
+
+drop policy if exists "vibeforce_queue_status_select_own" on public.vibeforce_queue_status;
+create policy "vibeforce_queue_status_select_own"
+  on public.vibeforce_queue_status for select
+  using (auth.uid() = user_id);
+
+-- Garante no banco que a tarefa automática "VIDEOS VIBE FORCE ACABANDO" nunca
+-- seja duplicada no mesmo dia, mesmo se duas telas Hoje abrirem ao mesmo tempo.
+create unique index if not exists tasks_vibeforce_queue_alert_unique
+  on public.tasks (user_id, task_date)
+  where title = 'VIDEOS VIBE FORCE ACABANDO';
+
+-- ----------------------------------------------------------------------------
 -- Financeiro — planilha de faturamento, gastos e lucro.
 -- Cada linha tem um faturamento (revenue) e os gastos feitos para ganhá-lo
 -- (cost). O lucro (revenue - cost) é calculado na tela.

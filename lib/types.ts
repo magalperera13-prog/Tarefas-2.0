@@ -59,6 +59,15 @@ export interface WishlistItem {
   updated_at: string;
 }
 
+export interface VibeforceQueueStatus {
+  id: string;
+  user_id: string;
+  dias_restantes: number;
+  videos_prontos: number;
+  cadencia_dia: number;
+  atualizado_em: string;
+}
+
 export interface DashboardStats {
   today: number;
   completedToday: number;
